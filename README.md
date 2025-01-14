@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DockIQ
 
 This repository defines an example of a Docker extension. The files in this repository have been automatically generated as a result of running `docker extension init`.
@@ -105,3 +106,6 @@ docker extension rm kimalena9/dockiq-extension:latest
 - To publish your extension in the Marketplace visit https://www.docker.com/products/extensions/submissions/.
 - To report issues and feedback visit https://github.com/docker/extensions-sdk/issues.
 - To look for other ideas of new extensions, or propose new ideas of extensions you would like to see, visit https://github.com/docker/extension-ideas/discussions.
+=======
+test
+>>>>>>> 82ef0c97ba4ff8b8750432cc24d466b25d041f7b
