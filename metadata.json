@@ -1,16 +1,16 @@
 {
-  "icon": "docker.svg",
-  "vm": {
-    "composefile": "docker-compose.yaml",
-    "exposes": {
-      "socket": "backend.sock"
-    }
-  },
+  "name": "DockIQ",
+  "version": "0.1.0",
+  "description": "DockIQ: Docker Health and Performance Analytics",
   "ui": {
     "dashboard-tab": {
-      "title": "Dockiq",
-      "src": "index.html",
-      "root": "ui"
+      "title": "DockIQ",
+      "src": "./ui"
     }
-  }
+  },
+  "backend": {
+    "src": "./backend"
+  },
+  "icon": "docker.svg",
+  "com.docker.desktop.extension.api.version": "0.3.4"
 }

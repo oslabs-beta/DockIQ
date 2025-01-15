@@ -105,5 +105,3 @@ docker extension rm kimalena9/dockiq-extension:latest
 - To publish your extension in the Marketplace visit https://www.docker.com/products/extensions/submissions/.
 - To report issues and feedback visit https://github.com/docker/extensions-sdk/issues.
 - To look for other ideas of new extensions, or propose new ideas of extensions you would like to see, visit https://github.com/docker/extension-ideas/discussions.
-
-Test
