@@ -14,6 +14,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "start": "vite preview", 
     "build": "tsc && vite build",
     "test": "jest src"
   },
