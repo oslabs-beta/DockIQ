@@ -8,7 +8,7 @@
   },
   "ui": {
     "dashboard-tab": {
-      "title": "Dockiq",
+      "title": "DockIQ",
       "src": "index.html",
       "root": "ui"
     }
