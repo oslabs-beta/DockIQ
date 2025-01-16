@@ -13,12 +13,12 @@ services:
   grafana:
     image: grafana/grafana
     ports:
-      - '3000:3000'
+      - '3100:3000'
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
     ports:
-      - '8080:8080'
+      - '8180:8080'
     volumes:
       # Mounts critical system directories into the container so cAdvisor can monitor resource usage
       - /:/rootfs:ro
