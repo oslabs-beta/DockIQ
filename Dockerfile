@@ -1,43 +1,49 @@
-FROM golang:1.21-alpine AS builder
-ENV CGO_ENABLED=0
-WORKDIR /backend
-COPY backend/go.* .
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
-COPY backend/. .
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go build -trimpath -ldflags="-s -w" -o bin/service
+# Base image for both backend and frontend
+FROM node:21.6-alpine3.18 AS builder
+WORKDIR /app
 
-FROM --platform=$BUILDPLATFORM node:21.6-alpine3.18 AS client-builder
-WORKDIR /ui
-# cache packages in layer
-COPY ui/package.json /ui/package.json
-COPY ui/package-lock.json /ui/package-lock.json
-RUN --mount=type=cache,target=/usr/src/app/.npm \
-    npm set cache /usr/src/app/.npm && \
-    npm ci
-# install
-COPY ui /ui
+# Copy both backend and frontend package.json and package-lock.json files
+COPY backend/package.json /app/backend/package.json
+COPY backend/package-lock.json /app/backend/package-lock.json
+COPY ui/package.json /app/ui/package.json
+COPY ui/package-lock.json /app/ui/package-lock.json
+
+# Install dependencies for both frontend and backend
+WORKDIR /app/backend
+RUN npm ci
+
+WORKDIR /app/ui
+RUN npm ci
+
+# Copy source code for both frontend and backend
+COPY backend /app/backend
+COPY ui /app/ui
+
+# Build the backend (TypeScript) and frontend (e.g., React)
+WORKDIR /app/backend
 RUN npm run build
 
-FROM alpine
-LABEL org.opencontainers.image.title="DockIQ" \
-    org.opencontainers.image.description="Docker Monitoring Health Tool" \
-    org.opencontainers.image.vendor="TheChefs" \
-    com.docker.desktop.extension.api.version="0.3.4" \
-    com.docker.extension.screenshots="" \
-    com.docker.desktop.extension.icon="" \
-    com.docker.extension.detailed-description="" \
-    com.docker.extension.publisher-url="" \
-    com.docker.extension.additional-urls="" \
-    com.docker.extension.categories="" \
-    com.docker.extension.changelog=""
+WORKDIR /app/ui
+RUN npm run build
 
-COPY --from=builder /backend/bin/service /
-COPY docker-compose.yaml .
-COPY metadata.json .
-COPY docker.svg .
-COPY --from=client-builder /ui/build ui
-CMD /service -socket /run/guest-services/backend.sock
+# Stage 2: Final Image
+FROM alpine:3.18
+
+# Install Node.js runtime for both frontend and backend
+RUN apk add --no-cache nodejs npm
+
+# Copy the built frontend and backend into the final image
+COPY --from=builder /app/backend/dist /app/backend
+COPY --from=builder /app/ui/build /app/ui
+
+# Copy additional files (docker-compose, metadata, etc.)
+COPY docker-compose.yaml /app/
+COPY metadata.json /app/
+COPY docker.svg /app/
+
+# Set the working directory for backend and expose the backend port
+WORKDIR /app/backend
+EXPOSE 3000
+
+# Command to run the backend app (using dist/app.js)
+CMD ["node", "/app/backend/dist/app.js", "-socket", "/run/guest-services/backend.sock"]

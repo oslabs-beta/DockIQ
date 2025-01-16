@@ -1,0 +1,29 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "dist/app.js",
+  "scripts": {
+    "start": "node dist/app.js", 
+    "dev": "nodemon src/app.ts", 
+    "build": "tsc", 
+    "lint": "eslint src/**/*.ts" 
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.2",
+    "dotenv": "^16.3.1" 
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0", 
+    "@types/node": "^22.10.7",
+    "nodemon": "^3.1.9", 
+    "ts-node": "^10.9.2", 
+    "typescript": "^5.7.3",
+    "eslint": "^8.51.0", 
+    "@typescript-eslint/eslint-plugin": "^6.4.0", 
+    "@typescript-eslint/parser": "^6.4.0" 
+  }
+}
