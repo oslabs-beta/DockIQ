@@ -1,14 +1,13 @@
-version: '3'
-
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     working_dir: /app/backend
-    command: ["node", "dist/app.js", "-socket", "/run/guest-services/backend.sock"]
+    command:
+      ['node', 'dist/app.js', '-socket', '/run/guest-services/backend.sock']
     ports:
-      - "3001:3000"  # Exposes the backend on port 3001
+      - '3001:3000' # Exposes the backend on port 3001
     volumes:
       - ./backend:/app/backend
     environment:
@@ -22,36 +21,39 @@ services:
       context: .
       dockerfile: Dockerfile
     working_dir: /app/ui
-    command: ["npm", "start"]
+    command: ['npm', 'start']
     ports:
-      - "3101:3000"  # Exposes the frontend on port 3101
+      - '3101:3000' # Exposes the frontend on port 3101
     volumes:
       - ./ui:/app/ui
     environment:
       NODE_ENV: production
-      BACKEND_URL: http://backend:3000  # Reference the backend service URL
+      BACKEND_URL: http://backend:3000 # Reference the backend service URL
 
   prometheus:
     image: prom/prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
   grafana:
     image: grafana/grafana
     ports:
-      - "3100:3000"
+      - '3100:3000'
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: kimalena9
+      GF_SECURITY_ADMIN_PASSWORD: fartpoopieapple
+    volumes:
+      - ./grafana-data:/var/lib/grafana
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
     ports:
-      - "8180:8080"
+      - '8180:8080'
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
+      - /mnt/x/docker_data:/var/lib/docker:ro
+    privileged: true
