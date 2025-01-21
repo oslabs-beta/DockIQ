@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build:
@@ -7,14 +9,15 @@ services:
     command:
       ['node', 'dist/app.js', '-socket', '/run/guest-services/backend.sock']
     ports:
-      - '3001:3000' # Exposes the backend on port 3001
-    volumes:
-      - ./backend:/app/backend
+      - '3001:3000'
     environment:
       NODE_ENV: development
       PORT: 3000
       PROMETHEUS_URL: http://prometheus:9090
       GRAFANA_URL: http://grafana:3100
+    # Use volumes only in development to reflect changes
+    volumes:
+      - ./backend:/app/backend
 
   frontend:
     build:
@@ -24,11 +27,12 @@ services:
     command: ['npm', 'start']
     ports:
       - '3101:3000' # Exposes the frontend on port 3101
-    volumes:
-      - ./ui:/app/ui
     environment:
       NODE_ENV: production
-      BACKEND_URL: http://backend:3000 # Reference the backend service URL
+      BACKEND_URL: http://backend:3000
+    # Use volumes only in development to reflect changes
+    volumes:
+      - ./ui:/app/ui
 
   prometheus:
     image: prom/prometheus

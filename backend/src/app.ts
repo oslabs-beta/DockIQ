@@ -2,7 +2,7 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import metricsRouter from './routes/metrics';
 
 const app: Application = express();
-
+console.log('fdafdasdfasfadfdsafdsa');
 // Add CORS middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
