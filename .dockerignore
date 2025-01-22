@@ -1,2 +1,10 @@
+# Ignore dependencies on the host machine (will be installed in the image)
+node_modules
 ui/node_modules
-grafana-data/
+backend/node_modules
+
+# Ignore temporary and build files
+*.log
+.env
+dist/
+build/

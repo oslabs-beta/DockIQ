@@ -5,12 +5,13 @@
   "scripts": {
     "start": "PORT=3001 node dist/app.js",
     "dev": "nodemon src/app.ts",
-    "build": "tsc",  
-    "lint": "eslint src/**/*.ts"
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "start:dev": "tsc -w"
   },
   "dependencies": {
-    "express": "^4.21.2",
     "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "prometheus-query": "^3.4.1"
   },
   "devDependencies": {
