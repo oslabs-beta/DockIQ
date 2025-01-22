@@ -3,7 +3,7 @@
   "vm": {
     "composefile": "docker-compose.yaml",
     "exposes": {
-      "socket": "backend.sock"
+      "socket": "/run/guest-services/backend.sock"
     }
   },
   "ui": {

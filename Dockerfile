@@ -1,49 +1,33 @@
-# Base image for both backend and frontend
-FROM node:21.6-alpine3.18 AS builder
-WORKDIR /app
+# Pull the *already-built* frontend image
+FROM dockiq-frontend:latest as frontend
 
-# Copy both backend and frontend package.json and package-lock.json files
-COPY backend/package.json /app/backend/package.json
-COPY backend/package-lock.json /app/backend/package-lock.json
-COPY ui/package.json /app/ui/package.json
-COPY ui/package-lock.json /app/ui/package-lock.json
+# Pull the *already-built* backend image
+FROM dockiq-backend:latest as backend
 
-# Install dependencies for both frontend and backend
-WORKDIR /app/backend
-RUN npm ci
+# Base image for Prometheus
+FROM prom/prometheus:latest as prometheus
 
-WORKDIR /app/ui
-RUN npm ci
+# Final image for the Docker Desktop extension
+FROM alpine:3.15
 
-# Copy source code for both frontend and backend
-COPY backend /app/backend
-COPY ui /app/ui
+# Copy built frontend files
+COPY --from=frontend /app/ui/build /ui
 
-# Build the backend (TypeScript) and frontend (e.g., React)
-WORKDIR /app/backend
-RUN npm run build
+# Copy built backend files
+COPY --from=backend /app/backend/dist /app/backend
 
-WORKDIR /app/ui
-RUN npm run build
+# Copy Prometheus configuration file
+COPY --from=prometheus /etc/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
 
-# Stage 2: Final Image
-FROM alpine:3.18
+# Copy extension metadata and other assets
+COPY metadata.json .
+COPY docker-compose.yaml .
+COPY docker.svg .
 
-# Install Node.js runtime for both frontend and backend
-RUN apk add --no-cache nodejs npm
+# Set extension labels, etc.
+LABEL org.opencontainers.image.title="DockIQ Extension" \
+      org.opencontainers.image.description="Docker monitoring health extension" \
+      com.docker.desktop.extension.api.version="0.3.4"
 
-# Copy the built frontend and backend into the final image
-COPY --from=builder /app/backend/dist /app/backend
-COPY --from=builder /app/ui/build /app/ui
-
-# Copy additional files (docker-compose, metadata, etc.)
-COPY docker-compose.yaml /app/
-COPY metadata.json /app/
-COPY docker.svg /app/
-
-# Set the working directory for backend and expose the backend port
-WORKDIR /app/backend
-EXPOSE 3000
-
-# Command to run the backend app (using dist/app.js)
-CMD ["node", "/app/backend/dist/app.js", "-socket", "/run/guest-services/backend.sock"]
+# Keep container alive (if extension is purely UI-based)
+CMD ["sleep", "infinity"]

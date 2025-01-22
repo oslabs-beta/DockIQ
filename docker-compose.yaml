@@ -1,59 +1,43 @@
+version: '3.9'
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    working_dir: /app/backend
-    command:
-      ['node', 'dist/app.js', '-socket', '/run/guest-services/backend.sock']
+    image: dockiq-backend:latest
     ports:
-      - '3001:3000' # Exposes the backend on port 3001
-    volumes:
-      - ./backend:/app/backend
+      - '3003:3000'
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 3000
       PROMETHEUS_URL: http://prometheus:9090
       GRAFANA_URL: http://grafana:3100
+    depends_on:
+      - prometheus
+      - grafana
 
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    working_dir: /app/ui
-    command: ['npm', 'start']
+    image: dockiq-frontend:latest
     ports:
-      - '3101:3000' # Exposes the frontend on port 3101
-    volumes:
-      - ./ui:/app/ui
+      - '3102:80'
     environment:
       NODE_ENV: production
-      BACKEND_URL: http://backend:3000 # Reference the backend service URL
+      BACKEND_URL: http://backend:3000
+    depends_on:
+      - backend
 
   prometheus:
-    image: prom/prometheus
+    image: dockiq-prometheus:latest # Use your custom Prometheus image
     ports:
-      - '9090:9090'
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - '9092:9090' # Custom external port mapped to Prometheus internal port
+    # Volume is no longer needed since the configuration is baked into the image
 
   grafana:
     image: grafana/grafana
     ports:
-      - '3100:3000'
+      - '3106:3000'
     environment:
       GF_SECURITY_ADMIN_USER: kimalena9
       GF_SECURITY_ADMIN_PASSWORD: fartpoopieapple
     volumes:
-      - ./grafana-data:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
 
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor
-    ports:
-      - '8180:8080'
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /mnt/x/docker_data:/var/lib/docker:ro
-    privileged: true
+volumes:
+  grafana-data:
