@@ -1,250 +1,43 @@
-# services:
-#   backend:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile
-#     working_dir: /app/backend
-#     command:
-#       # For production, only run the app
-#       - sh
-#       - -c
-#       - |
-#         if [ "$NODE_ENV" = "production" ]; then
-#           node dist/app.js -socket /run/guest-services/backend.sock;
-#         else
-#           npm run start:dev;
-#         fi
-#     ports:
-#       - '3001:3000'
-#     environment:
-#       NODE_ENV: development # Change to production for prod mode
-#       PORT: 3000
-#       PROMETHEUS_URL: http://prometheus:9090
-#       GRAFANA_URL: http://grafana:3100
-#     volumes:
-#       - ./backend:/app/backend # Mount in development to reflect changes
-
-#   frontend:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile
-#     working_dir: /app/ui
-#     command:
-#       # Use npm start or Vite's preview server
-#       - sh
-#       - -c
-#       - |
-#         if [ "$NODE_ENV" = "production" ]; then
-#           npm start;
-#         else
-#           npm run dev;
-#         fi
-#     ports:
-#       - '3101:3000'
-#     environment:
-#       NODE_ENV: development # Change to production for prod mode
-#       BACKEND_URL: http://backend:3000
-#     volumes:
-#       - ./ui:/app/ui # Mount for development mode
-
-#   prometheus:
-#     image: prom/prometheus
-#     ports:
-#       - '9090:9090'
-#     volumes:
-#       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-
-#   grafana:
-#     image: grafana/grafana
-#     ports:
-#       - '3100:3000'
-#     environment:
-#       GF_SECURITY_ADMIN_USER: kimalena9
-#       GF_SECURITY_ADMIN_PASSWORD: fartpoopieapple
-#     volumes:
-#       - ./grafana-data:/var/lib/grafana
-
-#   node_exporter:
-#     image: prom/node-exporter
-#     container_name: node-exporter
-#     ports:
-#       - '9100:9100'
-#     volumes:
-#       - '/proc:/host/proc:ro'
-#       - '/sys:/host/sys:ro'
-#     command:
-#       - '--path.procfs=/host/proc'
-#       - '--path.sysfs=/host/sys'
-#       - '--no-collector.netstat'
-#       - '--no-collector.softnet'
-#       - '--collector.filesystem.ignored-mount-points=^/(dev|proc|run/credentials/.+|sys|tmpfs|var/lib/docker/.+|mnt/wsl/.+)($|/)'
-#       - '--collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$'
-
-# services:
-#   backend:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile
-#       args:
-#         NODE_ENV: development
-#     working_dir: /app/backend
-#     command:
-#       - sh
-#       - -c
-#       - |
-#         echo "NODE_ENV is: $NODE_ENV";
-#         if [ "$NODE_ENV" = "production" ]; then
-#           node dist/app.js -socket /run/guest-services/backend.sock;
-#         else
-#           npm run start:dev;
-#         fi
-#     ports:
-#       - '3001:3000'
-#     environment:
-#       NODE_ENV: development
-#       PORT: 3000
-#       PROMETHEUS_URL: http://prometheus:9090
-#       GRAFANA_URL: http://grafana:3100
-#     volumes:
-#       - ./backend:/app/backend # Mount in development to reflect changes
-
-#   frontend:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile
-#     working_dir: /app/ui
-#     command:
-#       - sh
-#       - -c
-#       - |
-#         echo "NODE_ENV is: $NODE_ENV";
-#         if [ "$NODE_ENV" = "production" ]; then
-#           npm start;
-#         else
-#           npm run dev;
-#         fi
-#     ports:
-#       - '3101:3000'
-#     environment:
-#       NODE_ENV: development
-#       BACKEND_URL: http://backend:3000
-#     volumes:
-#       - ./ui:/app/ui # Mount for development mode
-
-#   prometheus:
-#     image: prom/prometheus
-#     ports:
-#       - '9090:9090'
-#     volumes:
-#       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-
-#   grafana:
-#     image: grafana/grafana
-#     ports:
-#       - '3100:3000'
-#     environment:
-#       GF_SECURITY_ADMIN_USER: kimalena9
-#       GF_SECURITY_ADMIN_PASSWORD: fartpoopieapple
-#     volumes:
-#       - ./grafana-data:/var/lib/grafana
-
-#   node_exporter:
-#     image: prom/node-exporter
-#     container_name: node-exporter
-#     ports:
-#       - '9100:9100'
-#     volumes:
-#       - ./node-exporter-metrics:/metrics:ro # Use a shared folder for cross-platform compatibility
-#     command:
-#       - '--path.procfs=/metrics/proc'
-#       - '--path.sysfs=/metrics/sys'
-#       - '--no-collector.netstat'
-#       - '--no-collector.softnet'
-#       - '--collector.filesystem.ignored-mount-points=^/(dev|proc|run/credentials/.+|sys|tmpfs|var/lib/docker/.+|mnt/wsl/.+)($|/)'
-#       - '--collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$'
-
-#could possibly work for extension let's see
+version: '3.9'
 services:
   backend:
-    build:
-      context: . # Build backend if source files exist locally
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: development # Pass the build argument for environment
-    working_dir: /app/backend
-    command:
-      - sh
-      - -c
-      - |
-        echo "NODE_ENV is: $NODE_ENV";
-        if [ "$NODE_ENV" = "production" ]; then
-          node dist/app.js -socket /run/guest-services/backend.sock;
-        else
-          npm run start:dev;
-        fi
+    image: dockiq-backend:latest
     ports:
-      - '3001:3000' # Backend port mapping
+      - '3003:3000'
     environment:
-      NODE_ENV: development # Use development environment
+      NODE_ENV: production
       PORT: 3000
-      PROMETHEUS_URL: http://prometheus:9290
-      GRAFANA_URL: http://grafana:3200
-    volumes:
-      - ./backend:/app/backend # Mount in development to reflect changes
+      PROMETHEUS_URL: http://prometheus:9090
+      GRAFANA_URL: http://grafana:3100
+    depends_on:
+      - prometheus
+      - grafana
 
   frontend:
-    build:
-      context: . # Build frontend if source files exist locally
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: development # Pass the build argument for environment
-    working_dir: /app/ui
-    command:
-      - sh
-      - -c
-      - |
-        echo "NODE_ENV is: $NODE_ENV";
-        if [ "$NODE_ENV" = "production" ]; then
-          npm start;
-        else
-          npm run dev;
-        fi
+    image: dockiq-frontend:latest
     ports:
-      - '3101:3000' # Frontend port mapping
+      - '3102:80'
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       BACKEND_URL: http://backend:3000
-    volumes:
-      - ./ui:/app/ui # Mount for development mode
+    depends_on:
+      - backend
 
   prometheus:
-    image: prom/prometheus
+    image: dockiq-prometheus:latest # Use your custom Prometheus image
     ports:
-      - '9290:9090' # Use a custom port to avoid conflicts
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - '9092:9090' # Custom external port mapped to Prometheus internal port
+    # Volume is no longer needed since the configuration is baked into the image
 
   grafana:
     image: grafana/grafana
     ports:
-      - '3200:3000' # Use a custom Grafana port
+      - '3106:3000'
     environment:
       GF_SECURITY_ADMIN_USER: kimalena9
       GF_SECURITY_ADMIN_PASSWORD: fartpoopieapple
     volumes:
-      - ./grafana-data:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
 
-  node_exporter:
-    image: prom/node-exporter
-    ports:
-      - '9300:9100' # Use a custom port to avoid conflicts
-    volumes:
-      - /proc:/host/proc:ro # Map host proc filesystem
-      - /sys:/host/sys:ro # Map host sys filesystem
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--no-collector.netstat'
-      - '--no-collector.softnet'
-      - '--collector.filesystem.ignored-mount-points=^/(dev|proc|run/credentials/.+|sys|tmpfs|var/lib/docker/.+|mnt/wsl/.+)($|/)'
-      - '--collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$'
+volumes:
+  grafana-data:

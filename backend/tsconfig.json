@@ -66,6 +66,5 @@
       "@types/*": ["src/types/*"]
     }
   },
-  "include": ["src/**/*"], // Include everything inside the src folder
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": ["src/**/*"] // Include everything inside the src folder
 }

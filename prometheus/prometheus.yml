@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 5s # How often to scrape targets by default
+
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090'] # Prometheus container's own endpoint
+
+  # Scrape Backend service
+  - job_name: 'backend'
+    static_configs:
+      - targets: ['backend:3000'] # Backend service URL inside the Docker network
+
+  # Scrape Frontend service
+  - job_name: 'frontend'
+    static_configs:
+      - targets: ['frontend:3000'] # Frontend service URL inside the Docker network
