@@ -6,5 +6,5 @@ backend/node_modules
 # Ignore temporary and build files
 *.log
 .env
-dist/
-build/
+!backend/dist
+!ui/build
