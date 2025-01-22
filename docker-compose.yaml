@@ -1,3 +1,54 @@
 services:
+  # Main extension service
   DockIQ:
     image: ${DESKTOP_PLUGIN_IMAGE}
+    container_name: dockiq
+    volumes:
+      - /var/run/docker.sock.raw:/var/run/docker.sock
+      - shared-grafana-files:/grafana
+      - shared-prometheus-files:/prometheus
+    ports:
+      - 3333:3333
+
+  # Node exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - prometheusdata:/prometheus
+      - shared-prometheus-files:/etc/prometheus
+    depends_on:
+      - DockIQ
+      - node-exporter
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - 2999:3000
+    volumes:
+      - shared-grafana-files:/etc/grafana
+    environment:
+      GF_PATHS_CONFIG: /etc/grafana/grafana.ini
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheusdata:
+  shared-grafana-files:
+  shared-prometheus-files:

@@ -1,5 +1,5 @@
 {
-  "icon": "docker.svg",
+  "icon": "dockiq.svg",
   "vm": {
     "composefile": "docker-compose.yaml",
     "exposes": {
@@ -8,7 +8,7 @@
   },
   "ui": {
     "dashboard-tab": {
-      "title": "Dockiq",
+      "title": "DockIQ",
       "src": "index.html",
       "root": "ui"
     }
