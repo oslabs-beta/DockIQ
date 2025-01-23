@@ -7,12 +7,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090'] # Prometheus container's own endpoint
 
-  # Scrape Backend service
-  - job_name: 'backend'
+  # Scrape cAdvisor metrics
+  - job_name: 'cadvisor'
     static_configs:
-      - targets: ['backend:3000'] # Backend service URL inside the Docker network
-
-  # Scrape Frontend service
-  - job_name: 'frontend'
-    static_configs:
-      - targets: ['frontend:3000'] # Frontend service URL inside the Docker network
+      - targets: ['dockiq-cadvisor-1:8080']

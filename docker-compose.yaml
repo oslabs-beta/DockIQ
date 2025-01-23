@@ -1,14 +1,13 @@
-version: '3.9'
 services:
   backend:
     image: dockiq-backend:latest
     ports:
-      - '3003:3000'
+      - '3004:3000'
     environment:
       NODE_ENV: production
       PORT: 3000
       PROMETHEUS_URL: http://prometheus:9090
-      GRAFANA_URL: http://grafana:3100
+      GRAFANA_URL: http://grafana:3000
     depends_on:
       - prometheus
       - grafana
@@ -16,7 +15,7 @@ services:
   frontend:
     image: dockiq-frontend:latest
     ports:
-      - '3102:80'
+      - '3103:80'
     environment:
       NODE_ENV: production
       BACKEND_URL: http://backend:3000
@@ -26,18 +25,29 @@ services:
   prometheus:
     image: dockiq-prometheus:latest # Use your custom Prometheus image
     ports:
-      - '9092:9090' # Custom external port mapped to Prometheus internal port
+      - '9090:9090' # Custom external port mapped to Prometheus internal port
     # Volume is no longer needed since the configuration is baked into the image
 
   grafana:
     image: grafana/grafana
     ports:
-      - '3106:3000'
+      - '3107:3000'
     environment:
-      GF_SECURITY_ADMIN_USER: kimalena9
-      GF_SECURITY_ADMIN_PASSWORD: fartpoopieapple
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
       - grafana-data:/var/lib/grafana
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - '8080:8080' # Expose cAdvisor on port 8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    privileged: true # Needed for accessing certain host metrics
 
 volumes:
   grafana-data:
