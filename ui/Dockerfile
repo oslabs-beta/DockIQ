@@ -46,7 +46,7 @@ LABEL org.opencontainers.image.title="DockIQ UI" \
       com.docker.extension.changelog="<ul><li>Initial UI implementation for DockIQ.</li></ul>"
 
 # Copy the built UI from the builder stage into /app/ui/build in the final image
-COPY --from=ui-builder /app/ui/build /ui
+COPY --from=ui-builder /app/ui/build /app/ui/build
 
 # If you want to serve it, you could install serve globally:
 RUN npm install -g serve

@@ -10,4 +10,4 @@ scrape_configs:
   # Scrape cAdvisor metrics
   - job_name: 'cadvisor'
     static_configs:
-      - targets: ['dockiq-cadvisor-1:8080']
+      - targets: ['host.docker.internal:8080']

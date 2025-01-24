@@ -13,15 +13,12 @@ router.get('/advanced', async (req: Request, res: Response): Promise<void> => {
   try {
     console.log('Received request to /advanced endpoint');
 
-    // Define the Prometheus query
     const query = 'rate(container_cpu_usage_seconds_total[1m])';
     console.log(`Executing Prometheus Query: ${query}`);
 
-    // Use Prometheus client to execute the query
     const data = await prometheusClient.instantQuery(query);
-    console.log('Query result:', JSON.stringify(data, null, 2)); // Log the response data
+    console.log('Query result:', JSON.stringify(data, null, 2));
 
-    // Send the data as the response
     res.json({ data });
   } catch (error: any) {
     console.error('Error in /metrics/advanced:', error.message);
