@@ -2,7 +2,7 @@ services:
   backend:
     image: dockiq-backend:latest
     ports:
-      - '3004:3000'
+      - '3005:3000'
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -15,7 +15,7 @@ services:
   frontend:
     image: dockiq-frontend:latest
     ports:
-      - '3103:3000'
+      - '3104:3000'
     environment:
       NODE_ENV: production
       BACKEND_URL: http://backend:3000
@@ -25,13 +25,13 @@ services:
   prometheus:
     image: dockiq-prometheus:latest # Use your custom Prometheus image
     ports:
-      - '9090:9090' # Custom external port mapped to Prometheus internal port
+      - '9091:9090' # Custom external port mapped to Prometheus internal port
     # Volume is no longer needed since the configuration is baked into the image
 
   grafana:
     image: grafana/grafana
     ports:
-      - '3107:3000'
+      - '3108:3000'
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
@@ -41,7 +41,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     ports:
-      - '8080:8080' # Expose cAdvisor on port 8080
+      - '8081:8080' # Expose cAdvisor on port 8080
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
