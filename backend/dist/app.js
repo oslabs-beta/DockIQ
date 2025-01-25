@@ -5,8 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const metrics_1 = __importDefault(require("./routes/metrics"));
+const containerStats_1 = __importDefault(require("./routes/containerStats"));
 const app = (0, express_1.default)();
-console.log('fdasfdasfa2343242');
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -29,6 +29,7 @@ app.get('/ping', (req, res) => {
     res.json({ status: 'ok', message: 'pong' });
 });
 app.use('/metrics', metrics_1.default);
+app.use('/api', containerStats_1.default);
 app.use((err, req, res, next) => {
     console.error('Error:', err);
     res.status(500).json({ status: 'error', message: err.message });

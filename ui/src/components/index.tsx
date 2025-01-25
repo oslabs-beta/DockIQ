@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -30,30 +30,46 @@ interface Container {
 }
 
 const DockIQ: React.FC = () => {
-  const containers: Container[] = [
-    {
-      name: 'container-name',
-      status: 'Running',
-      warning: true,
-      memUsage: '--',
-      memLimit: '--',
-      netIO: '--',
-      blockIO: '--',
-      pids: '--',
-    },
-    {
-      name: 'container-name',
-      status: 'Running',
-      warning: true,
-      memUsage: '--',
-      memLimit: '--',
-      netIO: '--',
-      blockIO: '--',
-      pids: '--',
-    },
-  ];
+  const [containers, setContainers] = useState<Container[]>([]);
+  const [statusCounts, setStatusCounts] = useState({
+    running: 0,
+    stopped: 0,
+    unhealthy: 0,
+    restarting: 0,
+  });
+  const [tabValue, setTabValue] = useState<number>(0);
 
-  const [tabValue, setTabValue] = React.useState<number>(0);
+  // Fetch data from the backend
+  const fetchData = async () => {
+    try {
+      const response = await fetch('http://localhost:3003/api/container-stats');
+      const data = await response.json();
+
+      // Parse the backend response
+      const containerData: Container[] = data.containers || [];
+      setContainers(containerData);
+
+      // Update status counts
+      const counts = containerData.reduce(
+        (acc, container) => {
+          if (container.status === 'running') acc.running++;
+          else if (container.status === 'exited') acc.stopped++;
+          else if (container.status === 'unhealthy') acc.unhealthy++;
+          else if (container.status === 'restarting') acc.restarting++;
+          return acc;
+        },
+        { running: 0, stopped: 0, unhealthy: 0, restarting: 0 }
+      );
+
+      setStatusCounts(counts);
+    } catch (error) {
+      console.error('Error fetching container data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -110,7 +126,7 @@ const DockIQ: React.FC = () => {
             }}
           >
             <Box component='span' sx={{ typography: 'h5' }}>
-              0
+              {statusCounts.running}
             </Box>
           </Box>
           <Box>
@@ -140,7 +156,7 @@ const DockIQ: React.FC = () => {
             }}
           >
             <Box component='span' sx={{ typography: 'h5' }}>
-              0
+              {statusCounts.stopped}
             </Box>
           </Box>
           <Box>
@@ -170,7 +186,7 @@ const DockIQ: React.FC = () => {
             }}
           >
             <Box component='span' sx={{ typography: 'h5' }}>
-              0
+              {statusCounts.unhealthy}
             </Box>
           </Box>
           <Box>
@@ -200,7 +216,7 @@ const DockIQ: React.FC = () => {
             }}
           >
             <Box component='span' sx={{ typography: 'h5' }}>
-              0
+              {statusCounts.restarting}
             </Box>
           </Box>
           <Box>
@@ -265,6 +281,7 @@ const DockIQ: React.FC = () => {
               color: 'text.primary',
             },
           }}
+          onClick={fetchData}
         >
           Refresh
         </Button>
@@ -284,8 +301,7 @@ const DockIQ: React.FC = () => {
           <TableHead>
             <TableRow>
               <TableCell>NAME</TableCell>
-              <TableCell>CPU %</TableCell>
-              <TableCell>MEM %</TableCell>
+              <TableCell>STATUS</TableCell>
               <TableCell>MEM USAGE/LIMIT</TableCell>
               <TableCell>NET I/O</TableCell>
               <TableCell>BLOCK I/O</TableCell>
@@ -303,23 +319,25 @@ const DockIQ: React.FC = () => {
                 <TableCell>{container.name}</TableCell>
                 <TableCell>
                   <Chip
-                    label='Running'
+                    label={container.status}
                     size='small'
                     sx={{
-                      bgcolor: 'rgba(46, 125, 50, 0.2)', // MUI's success background
-                      color: '#66bb6a', // MUI's success text
-                      fontWeight: 500,
-                      fontSize: '0.75rem',
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label='Warning'
-                    size='small'
-                    sx={{
-                      bgcolor: 'rgba(237, 108, 2, 0.2)', // MUI's warning background
-                      color: '#ff9800', // MUI's warning text
+                      bgcolor:
+                        container.status === 'Running'
+                          ? 'rgba(46, 125, 50, 0.2)'
+                          : container.status === 'Unhealthy'
+                          ? 'rgba(211, 47, 47, 0.2)'
+                          : container.status === 'Restarting'
+                          ? 'rgba(255, 167, 38, 0.2)'
+                          : 'rgba(158, 158, 158, 0.2)',
+                      color:
+                        container.status === 'Running'
+                          ? '#66bb6a'
+                          : container.status === 'Unhealthy'
+                          ? '#f44336'
+                          : container.status === 'Restarting'
+                          ? '#ffa726'
+                          : '#9e9e9e',
                       fontWeight: 500,
                       fontSize: '0.75rem',
                     }}
