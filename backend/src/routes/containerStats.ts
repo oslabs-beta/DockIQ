@@ -4,9 +4,15 @@ import Docker from 'dockerode';
 const router = Router();
 const docker = new Docker();
 
+interface Container {
+  Names: string[];
+  State: string;
+  Status: string;
+}
+
 router.get('/container-stats', async (req: Request, res: Response) => {
   try {
-    const containers = await docker.listContainers({ all: true });
+    const containers: Container[] = await docker.listContainers({ all: true });
 
     const stats = {
       running: 0,
@@ -16,7 +22,7 @@ router.get('/container-stats', async (req: Request, res: Response) => {
     };
 
     // Map container details and calculate stats
-    const containerData = containers.map((container) => {
+    const containerData = containers.map((container: Container) => {
       // Update stats based on container state
       if (container.State === 'running') stats.running++;
       else if (container.State === 'exited') stats.stopped++;

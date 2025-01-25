@@ -16,7 +16,7 @@ router.get('/container-stats', async (req, res) => {
             unhealthy: 0,
             restarting: 0,
         };
-        containers.forEach((container) => {
+        const containerData = containers.map((container) => {
             if (container.State === 'running')
                 stats.running++;
             else if (container.State === 'exited')
@@ -25,8 +25,18 @@ router.get('/container-stats', async (req, res) => {
                 stats.unhealthy++;
             else if (container.State === 'restarting')
                 stats.restarting++;
+            return {
+                name: container.Names[0].replace(/^\//, ''),
+                status: container.State,
+                warning: container.Status.includes('unhealthy'),
+                memUsage: '--',
+                memLimit: '--',
+                netIO: '--',
+                blockIO: '--',
+                pids: '--',
+            };
         });
-        res.json(stats);
+        res.json({ stats, containers: containerData });
     }
     catch (error) {
         console.error('Error fetching container stats:', error);
