@@ -22,6 +22,7 @@
     "@types/dockerode": "^3.3.34",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.7",
+    "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^8.21.0",
     "@typescript-eslint/parser": "^8.21.0",
     "eslint": "^9.18.0",

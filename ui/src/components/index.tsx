@@ -29,6 +29,11 @@ interface Container {
   pids: string;
 }
 
+interface Metrics {
+  cpuUsage: string;
+  memoryUsage: string;
+}
+
 const DockIQ: React.FC = () => {
   const [containers, setContainers] = useState<Container[]>([]);
   const [statusCounts, setStatusCounts] = useState({
@@ -37,19 +42,20 @@ const DockIQ: React.FC = () => {
     unhealthy: 0,
     restarting: 0,
   });
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [tabValue, setTabValue] = useState<number>(0);
 
-  useEffect(() => {
-    // Establish WebSocket connection
-    const ws = new WebSocket('ws://localhost:3003');
+  // Fetch container stats from the backend
+  const fetchContainerStats = async () => {
+    try {
+      const response = await fetch('http://localhost:3007/api/container-stats');
+      const data = await response.json();
 
-    // Handle incoming WebSocket messages
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data); // Parse the incoming data
+      // Parse the backend response
       const containerData: Container[] = data.containers || [];
       setContainers(containerData);
 
-      // Update status counts dynamically
+      // Update status counts
       const counts = containerData.reduce(
         (acc, container) => {
           if (container.status === 'running') acc.running++;
@@ -60,16 +66,36 @@ const DockIQ: React.FC = () => {
         },
         { running: 0, stopped: 0, unhealthy: 0, restarting: 0 }
       );
+
       setStatusCounts(counts);
-    };
+    } catch (error) {
+      console.error('Error fetching container stats:', error);
+    }
+  };
 
-    // Handle WebSocket connection close
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
+  // Fetch Prometheus metrics
+  const fetchMetrics = async () => {
+    try {
+      const response = await fetch('http://localhost:3007/api/metrics/advanced');
+      const data = await response.json();
 
-    // Cleanup function to close WebSocket on unmount
-    return () => ws.close();
+      // Assuming `data` contains `cpuUsage` and `memoryUsage`
+      setMetrics({
+        cpuUsage: `${data.data.cpuUsage} cores`,
+        memoryUsage: `${data.data.memoryUsage} MB`,
+      });
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+    }
+  };
+
+  const fetchData = async () => {
+    await fetchContainerStats();
+    await fetchMetrics();
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -97,6 +123,42 @@ const DockIQ: React.FC = () => {
         DockIQ
       </Typography>
 
+      {/* Metrics */}
+      {metrics && (
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 4,
+            mb: 4,
+          }}
+        >
+          <Paper
+            sx={{
+              p: 3,
+              bgcolor: 'rgba(25, 118, 210, 0.08)',
+              flex: 1,
+            }}
+          >
+            <Typography variant="h6" sx={{ color: 'primary.main' }}>
+              CPU Usage
+            </Typography>
+            <Typography variant="h5">{metrics.cpuUsage}</Typography>
+          </Paper>
+          <Paper
+            sx={{
+              p: 3,
+              bgcolor: 'rgba(255, 167, 38, 0.08)',
+              flex: 1,
+            }}
+          >
+            <Typography variant="h6" sx={{ color: 'warning.main' }}>
+              Memory Usage
+            </Typography>
+            <Typography variant="h5">{metrics.memoryUsage}</Typography>
+          </Paper>
+        </Box>
+      )}
+
       {/* Status Cards */}
       <Box
         sx={{
@@ -113,74 +175,57 @@ const DockIQ: React.FC = () => {
             sx={{
               p: 3,
               height: 120,
-              bgcolor: `rgba(${status === 'running' ? '25, 118, 210' : status === 'stopped' ? '158, 158, 158' : status === 'unhealthy' ? '211, 47, 47' : '255, 167, 38'}, 0.08)`,
+              bgcolor: `rgba(${
+                status === 'running'
+                  ? '25, 118, 210'
+                  : status === 'stopped'
+                  ? '158, 158, 158'
+                  : status === 'unhealthy'
+                  ? '211, 47, 47'
+                  : '255, 167, 38'
+              }, 0.08)`,
               display: 'flex',
               alignItems: 'center',
-              gap: 2,
+              justifyContent: 'center',
               flex: 1,
             }}
           >
-            <Box
-              sx={{
-                bgcolor: `${status === 'running' ? 'primary.main' : status === 'stopped' ? 'grey.500' : status === 'unhealthy' ? 'error.main' : 'warning.main'}`,
-                p: 1,
-                borderRadius: 1,
-                opacity: 0.8,
-              }}
-            >
-              <Box component="span" sx={{ typography: 'h5' }}>
-                {statusCounts[status as keyof typeof statusCounts]}
-              </Box>
-            </Box>
             <Box>
-              <Typography variant="h6" sx={{ color: `${status === 'running' ? 'primary.main' : status === 'stopped' ? 'grey.500' : status === 'unhealthy' ? 'error.main' : 'warning.main'}` }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  color: `${
+                    status === 'running'
+                      ? 'primary.main'
+                      : status === 'stopped'
+                      ? 'grey.500'
+                      : status === 'unhealthy'
+                      ? 'error.main'
+                      : 'warning.main'
+                  }`,
+                }}
+              >
+                {statusCounts[status as keyof typeof statusCounts]}
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  color: `${
+                    status === 'running'
+                      ? 'primary.main'
+                      : status === 'stopped'
+                      ? 'grey.500'
+                      : status === 'unhealthy'
+                      ? 'error.main'
+                      : 'warning.main'
+                  }`,
+                }}
+              >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </Typography>
             </Box>
           </Paper>
         ))}
-      </Box>
-
-      {/* Navigation Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          TabIndicatorProps={{
-            style: {
-              display: 'none',
-            },
-          }}
-          textColor="inherit"
-        >
-          <Tab
-            label="Stats"
-            sx={{
-              textTransform: 'none',
-              '&.Mui-selected': {
-                color: 'text.primary',
-              },
-            }}
-          />
-          <Tab
-            label="Logs"
-            sx={{
-              textTransform: 'none',
-              '&.Mui-selected': {
-                color: 'text.primary',
-              },
-            }}
-          />
-          <Tab
-            label="Alerts"
-            sx={{
-              textTransform: 'none',
-              '&.Mui-selected': {
-                color: 'text.primary',
-              },
-            }}
-          />
-        </Tabs>
       </Box>
 
       {/* Table */}
@@ -196,55 +241,28 @@ const DockIQ: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>NAME</TableCell>
-              <TableCell>STATUS</TableCell>
-              <TableCell>MEM USAGE/LIMIT</TableCell>
-              <TableCell>NET I/O</TableCell>
-              <TableCell>BLOCK I/O</TableCell>
-              <TableCell>PIDS</TableCell>
-              <TableCell></TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Memory Usage/Limit</TableCell>
+              <TableCell>Net I/O</TableCell>
+              <TableCell>Block I/O</TableCell>
+              <TableCell>PIDs</TableCell>
+              <TableCell>Details</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {containers.map((container, index) => (
-              <TableRow
-                key={index}
-                hover
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-              >
+              <TableRow key={index}>
                 <TableCell>{container.name}</TableCell>
                 <TableCell>
-                  <Chip
-                    label={container.status}
-                    size="small"
-                    sx={{
-                      bgcolor:
-                        container.status === 'running'
-                          ? 'rgba(46, 125, 50, 0.2)'
-                          : container.status === 'unhealthy'
-                          ? 'rgba(211, 47, 47, 0.2)'
-                          : container.status === 'restarting'
-                          ? 'rgba(255, 167, 38, 0.2)'
-                          : 'rgba(158, 158, 158, 0.2)',
-                      color:
-                        container.status === 'running'
-                          ? '#66bb6a'
-                          : container.status === 'unhealthy'
-                          ? '#f44336'
-                          : container.status === 'restarting'
-                          ? '#ffa726'
-                          : '#9e9e9e',
-                      fontWeight: 500,
-                      fontSize: '0.75rem',
-                    }}
-                  />
+                  <Chip label={container.status} size="small" />
                 </TableCell>
-                <TableCell>{container.memUsage}</TableCell>
+                <TableCell>{`${container.memUsage} / ${container.memLimit}`}</TableCell>
                 <TableCell>{container.netIO}</TableCell>
                 <TableCell>{container.blockIO}</TableCell>
                 <TableCell>{container.pids}</TableCell>
                 <TableCell>
-                  <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                  <IconButton size="small">
                     <KeyboardArrowDownIcon />
                   </IconButton>
                 </TableCell>
@@ -253,6 +271,13 @@ const DockIQ: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Refresh Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+        <Button variant="contained" onClick={fetchData}>
+          Refresh
+        </Button>
+      </Box>
     </Box>
   );
 };

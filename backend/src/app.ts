@@ -1,6 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors'; // Import CORS package
-import { WebSocketServer } from 'ws'; // Import WebSocket support
+import { WebSocketServer, WebSocket } from 'ws'; // Import WebSocket support
 import path from 'path'; // Import path for serving static files
 import metricsRouter from './routes/metrics';
 import containerStatsRouter from './routes/containerStats';
@@ -14,7 +14,7 @@ const app: Application = express();
 // Add CORS middleware using the `cors` package
 app.use(
   cors({
-    origin: 'http://localhost:3001', // Allow requests from the frontend
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Allow requests from the frontend
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Define allowed HTTP methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Define allowed headers
     credentials: true, // Allow cookies or credentials if needed
@@ -47,7 +47,7 @@ app.use('/metrics', metricsRouter);
 app.use('/api', containerStatsRouter); // Register the container-stats route under "/api"
 
 // Serve Frontend Static Files
-const frontendBuildPath = path.join(__dirname, '../ui/build');
+const frontendBuildPath = path.join(__dirname, process.env.FRONTEND_BUILD_PATH || '../ui/build');
 app.use(express.static(frontendBuildPath));
 
 // Catch-All Route to Serve React Frontend
@@ -56,34 +56,71 @@ app.get('*', (req: Request, res: Response) => {
 });
 
 // WebSocket Server
-const server = app.listen(process.env.PORT || 3003, '0.0.0.0', () => {
-  console.log(`Backend server running on port ${process.env.PORT || 3003}`);
+const port: number = parseInt(process.env.PORT || '3007', 10); // Ensure port is parsed as a number
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Backend server running on port ${port}`);
 });
 
 const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws: WebSocket) => {
   console.log('WebSocket connection established');
 
-  // Periodically send container stats
   const interval = setInterval(async () => {
     try {
       const containers = await docker.listContainers({ all: true });
-      const containerData = containers.map((container) => ({
-        name: container.Names[0]?.replace(/^\//, ''),
-        status: container.State,
-        warning: container.Status.includes('unhealthy'),
-        memUsage: '--', // Placeholder
-        netIO: '--', // Placeholder
-      }));
+
+      const containerData = await Promise.all(
+        containers.map(async (container) => {
+          const containerInstance = docker.getContainer(container.Id);
+          try {
+            const stats: any = await new Promise((resolve, reject) => {
+              containerInstance.stats({ stream: false }, (err, data) => {
+                if (err) reject(err);
+                else resolve(data);
+              });
+            });
+
+            return {
+              name: container.Names[0]?.replace(/^\//, ''),
+              status: container.State,
+              warning: container.Status.includes('unhealthy'),
+              memUsage: `${Math.round(stats.memory_stats.usage / 1024 / 1024)} MB`,
+              memLimit: `${Math.round(stats.memory_stats.limit / 1024 / 1024)} MB`,
+              netIO: `${Math.round(
+                stats.networks.eth0.rx_bytes / 1024
+              )} KB / ${Math.round(stats.networks.eth0.tx_bytes / 1024)} KB`,
+              blockIO: `${Math.round(
+                stats.blkio_stats.io_service_bytes_recursive?.[0]?.value / 1024 || 0
+              )} KB`,
+              pids: stats.pids_stats?.current || '--',
+            };
+          } catch (error) {
+            console.error(`Error fetching stats for container ${container.Id}:`, error);
+
+            // Fallback values if stats fetching fails
+            return {
+              name: container.Names[0]?.replace(/^\//, ''),
+              status: container.State,
+              warning: container.Status.includes('unhealthy'),
+              memUsage: '--',
+              memLimit: '--',
+              netIO: '--',
+              blockIO: '--',
+              pids: '--',
+            };
+          }
+        })
+      );
 
       ws.send(JSON.stringify({ containers: containerData }));
+      console.log('WebSocket data sent:', containerData); // Log data sent to frontend
     } catch (error) {
       console.error('Error fetching container stats:', error);
     }
   }, 5000);
 
-  // Handle WebSocket close
+  // Handle WebSocket closure
   ws.on('close', () => {
     console.log('WebSocket connection closed');
     clearInterval(interval);
