@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import "./styles.css"; // Add this for refresh animation
 import {
   Box,
   Typography,
@@ -14,9 +15,9 @@ import {
   TableRow,
   Chip,
   IconButton,
-} from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+} from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
 interface Container {
   name: string;
@@ -44,11 +45,12 @@ const DockIQ: React.FC = () => {
   });
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [tabValue, setTabValue] = useState<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false); // Added for refresh animation
 
   // Fetch container stats from the backend
   const fetchContainerStats = async () => {
     try {
-      const response = await fetch('http://localhost:3007/api/container-stats');
+      const response = await fetch("http://localhost:3007/api/container-stats");
       const data = await response.json();
 
       // Parse the backend response
@@ -58,10 +60,10 @@ const DockIQ: React.FC = () => {
       // Update status counts
       const counts = containerData.reduce(
         (acc, container) => {
-          if (container.status === 'running') acc.running++;
-          else if (container.status === 'exited') acc.stopped++;
-          else if (container.status === 'unhealthy') acc.unhealthy++;
-          else if (container.status === 'restarting') acc.restarting++;
+          if (container.status === "running") acc.running++;
+          else if (container.status === "exited") acc.stopped++;
+          else if (container.status === "unhealthy") acc.unhealthy++;
+          else if (container.status === "restarting") acc.restarting++;
           return acc;
         },
         { running: 0, stopped: 0, unhealthy: 0, restarting: 0 }
@@ -69,14 +71,16 @@ const DockIQ: React.FC = () => {
 
       setStatusCounts(counts);
     } catch (error) {
-      console.error('Error fetching container stats:', error);
+      console.error("Error fetching container stats:", error);
     }
   };
 
   // Fetch Prometheus metrics
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('http://localhost:3007/api/metrics/advanced');
+      const response = await fetch(
+        "http://localhost:3007/api/metrics/advanced"
+      );
       const data = await response.json();
 
       // Assuming `data` contains `cpuUsage` and `memoryUsage`
@@ -85,13 +89,18 @@ const DockIQ: React.FC = () => {
         memoryUsage: `${data.data.memoryUsage} MB`,
       });
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      console.error("Error fetching metrics:", error);
     }
   };
 
   const fetchData = async () => {
-    await fetchContainerStats();
-    await fetchMetrics();
+    setIsRefreshing(true); // Start refresh animation
+    try {
+      await fetchContainerStats();
+      await fetchMetrics();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 1000); // Ensure animation completes
+    }
   };
 
   useEffect(() => {
@@ -105,8 +114,8 @@ const DockIQ: React.FC = () => {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
+        minHeight: "100vh",
+        bgcolor: "background.default",
         p: 4,
       }}
     >
@@ -115,7 +124,7 @@ const DockIQ: React.FC = () => {
         variant="h4"
         component="h1"
         sx={{
-          color: 'primary.main',
+          color: "primary.main",
           fontWeight: 600,
           mb: 4,
         }}
@@ -127,7 +136,7 @@ const DockIQ: React.FC = () => {
       {metrics && (
         <Box
           sx={{
-            display: 'flex',
+            display: "flex",
             gap: 4,
             mb: 4,
           }}
@@ -135,11 +144,11 @@ const DockIQ: React.FC = () => {
           <Paper
             sx={{
               p: 3,
-              bgcolor: 'rgba(25, 118, 210, 0.08)',
+              bgcolor: "rgba(25, 118, 210, 0.08)",
               flex: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: 'primary.main' }}>
+            <Typography variant="h6" sx={{ color: "primary.main" }}>
               CPU Usage
             </Typography>
             <Typography variant="h5">{metrics.cpuUsage}</Typography>
@@ -147,11 +156,11 @@ const DockIQ: React.FC = () => {
           <Paper
             sx={{
               p: 3,
-              bgcolor: 'rgba(255, 167, 38, 0.08)',
+              bgcolor: "rgba(255, 167, 38, 0.08)",
               flex: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: 'warning.main' }}>
+            <Typography variant="h6" sx={{ color: "warning.main" }}>
               Memory Usage
             </Typography>
             <Typography variant="h5">{metrics.memoryUsage}</Typography>
@@ -162,79 +171,81 @@ const DockIQ: React.FC = () => {
       {/* Status Cards */}
       <Box
         sx={{
-          display: 'flex',
+          display: "flex",
           gap: 4,
           mb: 4,
-          width: '100%',
-          justifyContent: 'space-between',
+          width: "100%",
+          justifyContent: "space-between",
         }}
       >
-        {['running', 'stopped', 'unhealthy', 'restarting'].map((status, index) => (
-          <Paper
-            key={index}
-            sx={{
-              p: 3,
-              height: 120,
-              bgcolor: `rgba(${
-                status === 'running'
-                  ? '25, 118, 210'
-                  : status === 'stopped'
-                  ? '158, 158, 158'
-                  : status === 'unhealthy'
-                  ? '211, 47, 47'
-                  : '255, 167, 38'
-              }, 0.08)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-            }}
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                sx={{
-                  color: `${
-                    status === 'running'
-                      ? 'primary.main'
-                      : status === 'stopped'
-                      ? 'grey.500'
-                      : status === 'unhealthy'
-                      ? 'error.main'
-                      : 'warning.main'
-                  }`,
-                }}
-              >
-                {statusCounts[status as keyof typeof statusCounts]}
-              </Typography>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  color: `${
-                    status === 'running'
-                      ? 'primary.main'
-                      : status === 'stopped'
-                      ? 'grey.500'
-                      : status === 'unhealthy'
-                      ? 'error.main'
-                      : 'warning.main'
-                  }`,
-                }}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Typography>
-            </Box>
-          </Paper>
-        ))}
+        {["running", "stopped", "unhealthy", "restarting"].map(
+          (status, index) => (
+            <Paper
+              key={index}
+              sx={{
+                p: 3,
+                height: 120,
+                bgcolor: `rgba(${
+                  status === "running"
+                    ? "25, 118, 210"
+                    : status === "stopped"
+                    ? "158, 158, 158"
+                    : status === "unhealthy"
+                    ? "211, 47, 47"
+                    : "255, 167, 38"
+                }, 0.08)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flex: 1,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    color: `${
+                      status === "running"
+                        ? "primary.main"
+                        : status === "stopped"
+                        ? "grey.500"
+                        : status === "unhealthy"
+                        ? "error.main"
+                        : "warning.main"
+                    }`,
+                  }}
+                >
+                  {statusCounts[status as keyof typeof statusCounts]}
+                </Typography>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: `${
+                      status === "running"
+                        ? "primary.main"
+                        : status === "stopped"
+                        ? "grey.500"
+                        : status === "unhealthy"
+                        ? "error.main"
+                        : "warning.main"
+                    }`,
+                  }}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Typography>
+              </Box>
+            </Paper>
+          )
+        )}
       </Box>
 
       {/* Table */}
       <TableContainer
         component={Paper}
         sx={{
-          bgcolor: 'background.paper',
-          '& .MuiTableCell-root': {
-            borderColor: 'rgba(255, 255, 255, 0.12)',
+          bgcolor: "background.paper",
+          "& .MuiTableCell-root": {
+            borderColor: "rgba(255, 255, 255, 0.12)",
           },
         }}
       >
@@ -273,8 +284,21 @@ const DockIQ: React.FC = () => {
       </TableContainer>
 
       {/* Refresh Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-        <Button variant="contained" onClick={fetchData}>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
+        <Button
+          startIcon={
+            <RefreshIcon className={isRefreshing ? "animate-spin" : ""} />
+          }
+          onClick={fetchData}
+          sx={{
+            color: "text.secondary",
+            textTransform: "none",
+            "&:hover": {
+              bgcolor: "transparent",
+              color: "text.primary",
+            },
+          }}
+        >
           Refresh
         </Button>
       </Box>
