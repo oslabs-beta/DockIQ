@@ -1,25 +1,13 @@
 global:
   scrape_interval: 5s # How often to scrape targets by default
 
-# scrape_configs:
-#   # Scrape Prometheus itself
-#   - job_name: 'prometheus'
-#     static_configs:
-#       - targets: ['localhost:9090'] # Prometheus container's own endpoint
-
-#   # Scrape cAdvisor metrics
-#   - job_name: 'cadvisor'
-#     static_configs:
-#       - targets: ['host.docker.internal:8081']
-
 scrape_configs:
   # Scrape Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['prometheus:9090'] # Use the service name instead of 'localhost'
 
-  # Scrape cAdvisor metrics
-  - job_name: 'cadvisor'
+  - job_name: 'docker-containers'
     static_configs:
-      - targets: ['cadvisor:8080'] # Use the service name and container port
-
+      - targets: ['host.docker.internal:3003']
+    metrics_path: '/api/metrics' # This is where you specify the path
