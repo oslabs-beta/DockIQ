@@ -4,7 +4,6 @@ import {
   Typography,
   Tabs,
   Tab,
-  Button,
   Paper,
   Table,
   TableBody,
@@ -15,7 +14,6 @@ import {
   Chip,
   IconButton,
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 interface Container {
@@ -39,36 +37,45 @@ const DockIQ: React.FC = () => {
   });
   const [tabValue, setTabValue] = useState<number>(0);
 
-  // Fetch data from the backend
-  const fetchData = async () => {
-    try {
-      const response = await fetch('http://localhost:3003/api/container-stats');
-      const data = await response.json();
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    const socket = new WebSocket(
+      'ws://localhost:3003/api/container-stats-stream'
+    );
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
 
       // Parse the backend response
       const containerData: Container[] = data.containers || [];
       setContainers(containerData);
 
       // Update status counts
-      const counts = containerData.reduce(
-        (acc, container) => {
-          if (container.status === 'running') acc.running++;
-          else if (container.status === 'exited') acc.stopped++;
-          else if (container.status === 'unhealthy') acc.unhealthy++;
-          else if (container.status === 'restarting') acc.restarting++;
-          return acc;
-        },
-        { running: 0, stopped: 0, unhealthy: 0, restarting: 0 }
-      );
-
+      const counts = {
+        running: data.stats.running || 0,
+        stopped: data.stats.stopped || 0,
+        unhealthy: data.stats.unhealthy || 0,
+        restarting: data.stats.restarting || 0,
+      };
       setStatusCounts(counts);
-    } catch (error) {
-      console.error('Error fetching container data:', error);
-    }
-  };
+    };
 
-  useEffect(() => {
-    fetchData();
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    // Cleanup WebSocket connection when the component unmounts
+    return () => {
+      socket.close();
+    };
   }, []);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -106,125 +113,61 @@ const DockIQ: React.FC = () => {
           justifyContent: 'space-between',
         }}
       >
-        <Paper
-          sx={{
-            p: 3,
-            height: 120,
-            bgcolor: 'rgba(25, 118, 210, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            flex: 1,
-          }}
-        >
-          <Box
+        {[
+          {
+            label: 'Running',
+            count: statusCounts.running,
+            color: 'primary.main',
+            bgColor: 'rgba(25, 118, 210, 0.08)',
+          },
+          {
+            label: 'Stopped',
+            count: statusCounts.stopped,
+            color: 'grey.500',
+            bgColor: 'rgba(158, 158, 158, 0.08)',
+          },
+          {
+            label: 'Unhealthy',
+            count: statusCounts.unhealthy,
+            color: 'error.main',
+            bgColor: 'rgba(211, 47, 47, 0.08)',
+          },
+          {
+            label: 'Restarting',
+            count: statusCounts.restarting,
+            color: 'warning.main',
+            bgColor: 'rgba(255, 167, 38, 0.08)',
+          },
+        ].map((status, index) => (
+          <Paper
+            key={index}
             sx={{
-              bgcolor: 'primary.main',
-              p: 1,
-              borderRadius: 1,
-              opacity: 0.8,
+              p: 3,
+              height: 120,
+              bgcolor: status.bgColor,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flex: 1,
             }}
           >
-            <Box component='span' sx={{ typography: 'h5' }}>
-              {statusCounts.running}
+            <Box
+              sx={{
+                bgcolor: status.color,
+                p: 1,
+                borderRadius: 1,
+                opacity: 0.8,
+              }}
+            >
+              <Typography variant='h5'>{status.count}</Typography>
             </Box>
-          </Box>
-          <Box>
-            <Typography variant='h6' sx={{ color: 'primary.main' }}>
-              Running
-            </Typography>
-          </Box>
-        </Paper>
-
-        <Paper
-          sx={{
-            p: 3,
-            height: 120,
-            bgcolor: 'rgba(158, 158, 158, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            flex: 1,
-          }}
-        >
-          <Box
-            sx={{
-              bgcolor: 'grey.500',
-              p: 1,
-              borderRadius: 1,
-              opacity: 0.8,
-            }}
-          >
-            <Box component='span' sx={{ typography: 'h5' }}>
-              {statusCounts.stopped}
+            <Box>
+              <Typography variant='h6' sx={{ color: status.color }}>
+                {status.label}
+              </Typography>
             </Box>
-          </Box>
-          <Box>
-            <Typography variant='h6' sx={{ color: 'grey.500' }}>
-              Stopped
-            </Typography>
-          </Box>
-        </Paper>
-
-        <Paper
-          sx={{
-            p: 3,
-            height: 120,
-            bgcolor: 'rgba(211, 47, 47, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            flex: 1,
-          }}
-        >
-          <Box
-            sx={{
-              bgcolor: 'error.main',
-              p: 1,
-              borderRadius: 1,
-              opacity: 0.8,
-            }}
-          >
-            <Box component='span' sx={{ typography: 'h5' }}>
-              {statusCounts.unhealthy}
-            </Box>
-          </Box>
-          <Box>
-            <Typography variant='h6' sx={{ color: 'error.main' }}>
-              Unhealthy
-            </Typography>
-          </Box>
-        </Paper>
-
-        <Paper
-          sx={{
-            p: 3,
-            height: 120,
-            bgcolor: 'rgba(255, 167, 38, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            flex: 1,
-          }}
-        >
-          <Box
-            sx={{
-              bgcolor: 'warning.main',
-              p: 1,
-              borderRadius: 1,
-              opacity: 0.8,
-            }}
-          >
-            <Box component='span' sx={{ typography: 'h5' }}>
-              {statusCounts.restarting}
-            </Box>
-          </Box>
-          <Box>
-            <Typography variant='h6' sx={{ color: 'warning.main' }}>
-              Restarting
-            </Typography>
-          </Box>
-        </Paper>
+          </Paper>
+        ))}
       </Box>
 
       {/* Navigation Tabs */}
@@ -243,48 +186,24 @@ const DockIQ: React.FC = () => {
             label='Stats'
             sx={{
               textTransform: 'none',
-              '&.Mui-selected': {
-                color: 'text.primary',
-              },
+              '&.Mui-selected': { color: 'text.primary' },
             }}
           />
           <Tab
             label='Logs'
             sx={{
               textTransform: 'none',
-              '&.Mui-selected': {
-                color: 'text.primary',
-              },
+              '&.Mui-selected': { color: 'text.primary' },
             }}
           />
           <Tab
             label='Alerts'
             sx={{
               textTransform: 'none',
-              '&.Mui-selected': {
-                color: 'text.primary',
-              },
+              '&.Mui-selected': { color: 'text.primary' },
             }}
           />
         </Tabs>
-      </Box>
-
-      {/* Refresh Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-        <Button
-          startIcon={<RefreshIcon />}
-          sx={{
-            color: 'text.secondary',
-            textTransform: 'none',
-            '&:hover': {
-              bgcolor: 'transparent',
-              color: 'text.primary',
-            },
-          }}
-          onClick={fetchData}
-        >
-          Refresh
-        </Button>
       </Box>
 
       {/* Table */}
@@ -306,7 +225,6 @@ const DockIQ: React.FC = () => {
               <TableCell>NET I/O</TableCell>
               <TableCell>BLOCK I/O</TableCell>
               <TableCell>PIDS</TableCell>
-              <TableCell></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -323,19 +241,19 @@ const DockIQ: React.FC = () => {
                     size='small'
                     sx={{
                       bgcolor:
-                        container.status === 'Running'
+                        container.status === 'running'
                           ? 'rgba(46, 125, 50, 0.2)'
-                          : container.status === 'Unhealthy'
+                          : container.status === 'unhealthy'
                           ? 'rgba(211, 47, 47, 0.2)'
-                          : container.status === 'Restarting'
+                          : container.status === 'restarting'
                           ? 'rgba(255, 167, 38, 0.2)'
                           : 'rgba(158, 158, 158, 0.2)',
                       color:
-                        container.status === 'Running'
+                        container.status === 'running'
                           ? '#66bb6a'
-                          : container.status === 'Unhealthy'
+                          : container.status === 'unhealthy'
                           ? '#f44336'
-                          : container.status === 'Restarting'
+                          : container.status === 'restarting'
                           ? '#ffa726'
                           : '#9e9e9e',
                       fontWeight: 500,
@@ -347,11 +265,6 @@ const DockIQ: React.FC = () => {
                 <TableCell>{container.netIO}</TableCell>
                 <TableCell>{container.blockIO}</TableCell>
                 <TableCell>{container.pids}</TableCell>
-                <TableCell>
-                  <IconButton size='small' sx={{ color: 'text.secondary' }}>
-                    <KeyboardArrowDownIcon />
-                  </IconButton>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
