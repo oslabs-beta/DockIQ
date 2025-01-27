@@ -9,8 +9,14 @@
   "ui": {
     "dashboard-tab": {
       "title": "DockIQ",
-      "src": "index.html",
+      "src": "http://localhost:3001",
       "root": "ui"
     }
+  },
+  "backend": {
+    "socket": "/run/guest-services/backend.sock"
+  },
+  "extensions": {
+    "docker_desktop_extension": true
   }
 }

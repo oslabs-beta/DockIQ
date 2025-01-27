@@ -4,32 +4,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const express_ws_1 = __importDefault(require("express-ws"));
+const cors_1 = __importDefault(require("cors"));
 const metrics_1 = __importDefault(require("./routes/metrics"));
 const containerStats_1 = __importDefault(require("./routes/containerStats"));
 const app = (0, express_1.default)();
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    next();
-});
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-    console.log('Headers:', req.headers);
-    console.log('Query:', req.query);
-    console.log('Body:', req.body);
-    next();
-});
+(0, express_ws_1.default)(app);
+app.use((0, cors_1.default)({
+    origin: 'http://localhost:3001',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+}));
 app.use(express_1.default.json());
 app.get('/', (req, res) => {
-    console.log('Root route hit');
     res.json({ status: 'ok', message: 'Backend server is running!' });
 });
 app.get('/ping', (req, res) => {
-    console.log('Ping route hit');
     res.json({ status: 'ok', message: 'pong' });
 });
 app.use('/metrics', metrics_1.default);
-app.use('/api', containerStats_1.default);
+const containerStats = (0, containerStats_1.default)(app);
+app.use('/api', containerStats);
 app.use((err, req, res, next) => {
     console.error('Error:', err);
     res.status(500).json({ status: 'error', message: err.message });
@@ -37,7 +33,5 @@ app.use((err, req, res, next) => {
 const port = Number(process.env.PORT) || 3001;
 app.listen(port, '0.0.0.0', () => {
     console.log(`Backend server running on port ${port}`);
-    console.log(`Try accessing: http://localhost:${port}/ping`);
 });
-exports.default = app;
 //# sourceMappingURL=app.js.map
