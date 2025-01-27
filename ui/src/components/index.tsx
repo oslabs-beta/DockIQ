@@ -335,14 +335,11 @@ const DockIQ: React.FC = () => {
                           Expanded content for {container.name}
                         </Typography>
                         <iframe
-                          src='http://localhost:3006/d/ceavpt5ifcc8wf/cpu-usage-display?orgId=1&from=now-5m&to=now&timezone=browser&var-container=dockiq2-backend-1&refresh=auto&viewPanel=panel-1'
+                          src='http://localhost:3006/d/ceavpt5ifcc8wf/cpu-usage-display?orgId=1&var-container=dockiq2-backend-1&viewPanel=panel-1&kiosk=true'
                           width='100%'
                           height='400px'
-                          title='Grafana Panel'
-                          style={{
-                            border: 'none',
-                          }}
-                        />
+                          title='Grafana Dashboard'
+                        ></iframe>
                       </Box>
                     </TableCell>
                   </TableRow>
