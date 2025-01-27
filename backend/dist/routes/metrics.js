@@ -1,24 +1,28 @@
-'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
-const express_1 = require('express');
-const prometheus_query_1 = require('prometheus-query');
-console.log('test');
-const router = (0, express_1.Router)();
-const prometheusClient = new prometheus_query_1.PrometheusDriver({
-  endpoint: process.env.PROMETHEUS_URL || 'http://prometheus:9090',
-});
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const prometheusClient_1 = __importDefault(require("../services/prometheusClient"));
+const router = express_1.default.Router();
 router.get('/advanced', async (req, res) => {
-  try {
-    console.log('Received request to /advanced endpoint');
-    const query = 'rate(container_cpu_usage_seconds_total[1m])';
-    console.log(`Executing Prometheus Query: ${query}`);
-    const data = await prometheusClient.instantQuery(query);
-    console.log('Query result:', JSON.stringify(data, null, 2));
-    res.json({ data });
-  } catch (error) {
-    console.error('Error in /metrics/advanced:', error.message);
-    res.status(500).json({ error: error.message });
-  }
+    try {
+        console.log('Received request to /advanced endpoint');
+        const query = 'rate(container_cpu_usage_seconds_total[1m])';
+        console.log(`Executing Prometheus Query: ${query}`);
+        const result = await prometheusClient_1.default.instantQuery(query);
+        const transformedData = result.result.map((item) => ({
+            container: item.metric.container || 'unknown',
+            cpuPercent: parseFloat(item.value[1]) * 100,
+        }));
+        console.log('Transformed Data:', transformedData);
+        res.json({ containers: transformedData });
+    }
+    catch (error) {
+        console.error('Error in /metrics/advanced:', error.message);
+        res.status(500).json({ error: error.message });
+    }
 });
 exports.default = router;
 //# sourceMappingURL=metrics.js.map

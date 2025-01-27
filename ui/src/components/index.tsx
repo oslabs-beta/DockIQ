@@ -22,8 +22,8 @@ interface Container {
   status: string;
   warning: boolean;
   memUsage: string;
+  memPercent: string;
   cpuPercent: string;
-  memLimit: string;
   netIO: string;
   blockIO: string;
   pids: string;
@@ -101,8 +101,8 @@ const DockIQ: React.FC = () => {
     >
       {/* Header */}
       <Typography
-        variant='h4'
-        component='h1'
+        variant="h4"
+        component="h1"
         sx={{
           color: 'primary.main',
           fontWeight: 600,
@@ -168,10 +168,10 @@ const DockIQ: React.FC = () => {
                 opacity: 0.8,
               }}
             >
-              <Typography variant='h5'>{status.count}</Typography>
+              <Typography variant="h5">{status.count}</Typography>
             </Box>
             <Box>
-              <Typography variant='h6' sx={{ color: status.color }}>
+              <Typography variant="h6" sx={{ color: status.color }}>
                 {status.label}
               </Typography>
             </Box>
@@ -189,24 +189,24 @@ const DockIQ: React.FC = () => {
               display: 'none',
             },
           }}
-          textColor='inherit'
+          textColor="inherit"
         >
           <Tab
-            label='Stats'
+            label="Stats"
             sx={{
               textTransform: 'none',
               '&.Mui-selected': { color: 'text.primary' },
             }}
           />
           <Tab
-            label='Logs'
+            label="Logs"
             sx={{
               textTransform: 'none',
               '&.Mui-selected': { color: 'text.primary' },
             }}
           />
           <Tab
-            label='Alerts'
+            label="Alerts"
             sx={{
               textTransform: 'none',
               '&.Mui-selected': { color: 'text.primary' },
@@ -233,9 +233,10 @@ const DockIQ: React.FC = () => {
               <TableCell>NAME</TableCell>
               <TableCell>STATUS</TableCell>
               <TableCell>CPU %</TableCell>
-              <TableCell>MEM USAGE/LIMIT</TableCell>
-              <TableCell>NET I/O</TableCell>
+              <TableCell>MEM %</TableCell>
+              <TableCell>MEM USAGE / LIMIT</TableCell>
               <TableCell>BLOCK I/O</TableCell>
+              <TableCell>NET I/O</TableCell>
               <TableCell>PIDS</TableCell>
               <TableCell></TableCell>
             </TableRow>
@@ -248,7 +249,7 @@ const DockIQ: React.FC = () => {
                   <TableCell>
                     <Chip
                       label={container.status}
-                      size='small'
+                      size="small"
                       sx={{
                         bgcolor:
                           container.status === 'running'
@@ -269,19 +270,15 @@ const DockIQ: React.FC = () => {
                       }}
                     />
                   </TableCell>
-                  <TableCell>
-                    {container.cpuPercent
-                      ? `${parseFloat(container.cpuPercent).toFixed(2)}%`
-                      : '--'}
-                  </TableCell>{' '}
-                  {/* CPU % */}
+                  <TableCell>{container.cpuPercent || '--'}</TableCell>
+                  <TableCell>{container.memPercent || '--'}</TableCell>
                   <TableCell>{container.memUsage}</TableCell>
-                  <TableCell>{container.netIO}</TableCell>
                   <TableCell>{container.blockIO}</TableCell>
+                  <TableCell>{container.netIO}</TableCell>
                   <TableCell>{container.pids}</TableCell>
                   <TableCell>
                     <IconButton
-                      size='small'
+                      size="small"
                       onClick={() =>
                         setExpandedRows((prev) => ({
                           ...prev,
@@ -301,7 +298,7 @@ const DockIQ: React.FC = () => {
                 </TableRow>
                 {expandedRows[index] && (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={9}>
                       <Box sx={{ p: 2 }}>
                         Expanded content for {container.name}
                       </Box>
