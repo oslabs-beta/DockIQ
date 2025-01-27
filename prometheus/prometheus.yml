@@ -5,9 +5,9 @@ scrape_configs:
   # Scrape Prometheus itself
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['prometheus:9090'] # Use the service name instead of 'localhost'
+      - targets: ['dockiq2-prometheus-1:9090'] # Use the service name instead of 'localhost'
 
   - job_name: 'docker-containers'
     static_configs:
-      - targets: ['host.docker.internal:3003']
+      - targets: ['dockiq2-backend-1:3003']
     metrics_path: '/api/metrics' # This is where you specify the path
