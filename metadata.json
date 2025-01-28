@@ -18,5 +18,15 @@
   },
   "extensions": {
     "docker_desktop_extension": true
-  }
+  },
+  "volumes": [
+    {
+      "name": "grafana-data",
+      "path": "/var/lib/grafana"
+    },
+    {
+      "name": "prometheus-data",
+      "path": "/prometheus"
+    }
+  ]
 }

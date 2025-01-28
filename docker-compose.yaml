@@ -1,8 +1,71 @@
+# services:
+#   backend:
+#     image: dockiq-backend:latest
+#     ports:
+#       - '3003:3003' # Map backend's internal port 3003 to host's port 3003
+#     environment:
+#       NODE_ENV: production
+#       PORT: 3003
+#       PROMETHEUS_URL: http://prometheus:9090
+#       GRAFANA_URL: http://grafana:3000
+#     volumes:
+#       - /var/run/docker.sock:/var/run/docker.sock
+#     depends_on:
+#       - prometheus
+#       - grafana
+#     networks:
+#       - dockiq-network
+
+#   frontend:
+#     image: dockiq-frontend:latest
+#     ports:
+#       - '3001:3000' # Map frontend's internal port 3000 to host's port 3001
+#     environment:
+#       NODE_ENV: production
+#       BACKEND_URL: http://backend:3003
+#     depends_on:
+#       - backend
+#     networks:
+#       - dockiq-network
+
+#   prometheus:
+#     image: dockiq-prometheus:latest
+#     ports:
+#       - '9094:9090' # Map Prometheus's internal port 9090 to host's port 9094
+#     volumes:
+#       - prometheus-data:/prometheus
+#     networks:
+#       - dockiq-network
+
+#   grafana:
+#     image: grafana/grafana
+#     ports:
+#       - '3006:3000' # Map Grafana's internal port 3000 to host's port 3006
+#     environment:
+#       GF_SECURITY_ADMIN_USER: admin
+#       GF_SECURITY_ADMIN_PASSWORD: admin
+#       GF_SECURITY_ALLOW_EMBEDDING: true
+#       GF_SERVER_ROOT_URL: http://localhost:3006 # Update root_url to match the host or subpath
+#       GF_SERVER_SERVE_FROM_SUB_PATH: true # Ensure Grafana serves from subpaths correctly
+#     volumes:
+#       - grafana-data:/var/lib/grafana
+#     networks:
+#       - dockiq-network
+
+# volumes:
+#   grafana-data: # Declare the named volume for Grafana
+#     external: true
+#   prometheus-data: # Declare the named volume for Prometheus
+#     external: true
+
+# networks:
+#   dockiq-network:
+#     driver: bridge
 services:
   backend:
     image: dockiq-backend:latest
     ports:
-      - '3003:3003' # Map backend's internal port 3000 to host's port 3001
+      - '3003:3003'
     environment:
       NODE_ENV: production
       PORT: 3003
@@ -13,32 +76,51 @@ services:
     depends_on:
       - prometheus
       - grafana
+    networks:
+      - dockiq-network
 
   frontend:
     image: dockiq-frontend:latest
     ports:
-      - '3001:3000' # Frontend stays on host port 3000
+      - '3001:3000'
     environment:
       NODE_ENV: production
-      BACKEND_URL: http://backend:3000
+      BACKEND_URL: http://backend:3003
     depends_on:
       - backend
+    networks:
+      - dockiq-network
 
   prometheus:
     image: dockiq-prometheus:latest
     ports:
-      - '9094:9090' # Map Prometheus's internal port 9090 to host's port 9090
+      - '9094:9090'
+    volumes:
+      - prometheus-data:/prometheus
+    networks:
+      - dockiq-network
 
   grafana:
     image: grafana/grafana
     ports:
-      - '3006:3000' # Map Grafana's internal port 3000 to host's port 3002
+      - '3006:3000'
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_SECURITY_ALLOW_EMBEDDING: true # Enable embedding
+      GF_SECURITY_ALLOW_EMBEDDING: true
+      GF_SERVER_ROOT_URL: http://grafana:3000
+      GF_SERVER_SERVE_FROM_SUB_PATH: true
     volumes:
       - grafana-data:/var/lib/grafana
+    networks:
+      - dockiq-network
 
 volumes:
-  grafana-data: # Declare the named volume here
+  grafana-data:
+    external: true
+  prometheus-data:
+    external: true
+
+networks:
+  dockiq-network:
+    driver: bridge

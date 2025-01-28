@@ -331,11 +331,8 @@ const DockIQ: React.FC = () => {
                   <TableRow>
                     <TableCell colSpan={9}>
                       <Box sx={{ p: 2 }}>
-                        <Typography variant='h6' gutterBottom>
-                          Expanded content for {container.name}
-                        </Typography>
                         <iframe
-                          src='http://localhost:3006/d/ceavpt5ifcc8wf/cpu-usage-display?orgId=1&var-container=dockiq2-backend-1&viewPanel=panel-1&kiosk=true'
+                          src='http://localhost:3006/d/febaya9xv5iiof/cpu-usage-display?orgId=1&var-container=dockiq2-backend-1&viewPanel=panel-1&kiosk=true'
                           width='100%'
                           height='400px'
                           title='Grafana Dashboard'

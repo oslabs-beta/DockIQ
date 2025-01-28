@@ -1,13 +1,14 @@
 global:
-  scrape_interval: 5s # How often to scrape targets by default
+  scrape_interval: 5s
 
 scrape_configs:
   # Scrape Prometheus itself
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['dockiq2-prometheus-1:9090'] # Use the service name instead of 'localhost'
+      - targets: ['prometheus:9090'] # Use the service name
 
-  - job_name: 'docker-containers'
+  # Scrape the backend
+  - job_name: 'backend'
     static_configs:
-      - targets: ['dockiq2-backend-1:3003']
-    metrics_path: '/api/metrics' # This is where you specify the path
+      - targets: ['backend:3003'] # Use the service name
+    metrics_path: '/api/metrics'
