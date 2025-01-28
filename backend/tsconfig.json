@@ -1,0 +1,70 @@
+// {
+//   "compilerOptions": {
+//     /* Language and Environment */
+//     "target": "ES2020" /* Set the JavaScript language version for emitted JavaScript. */,
+//     "module": "commonjs" /* Specify what module code is generated. */,
+//     "rootDir": "./src" /* Specify the root folder for source files. */,
+//     "outDir": "./dist" /* Specify the output folder for compiled files. */,
+//     "esModuleInterop": true /* Emit additional JS to ease importing CommonJS modules. */,
+//     "forceConsistentCasingInFileNames": true /* Ensure consistent casing in file imports. */,
+//     "strict": true /* Enable all strict type-checking options. */,
+//     "skipLibCheck": true /* Skip type-checking all declaration files (.d.ts). */,
+
+//     /* Emit */
+//     "sourceMap": true /* Generate source maps for debugging. */,
+//     "removeComments": true /* Remove comments from emitted JavaScript. */,
+
+//     /* Type Checking */
+//     "strictNullChecks": true /* Ensure null and undefined are handled explicitly. */,
+//     "noImplicitAny": true /* Raise errors on variables with implicit "any" type. */,
+
+//     /* Module Resolution */
+//     "moduleResolution": "node" /* Use Node.js-style module resolution. */,
+//     "resolveJsonModule": true /* Allow importing JSON files directly. */,
+//     "allowSyntheticDefaultImports": true /* Allow default imports from modules without default exports. */,
+//     "baseUrl": "." /* Base directory to resolve non-relative module imports. */,
+//     "paths": {
+//       /* Configure module resolution for cleaner imports. */
+//       "@routes/*": ["src/routes/*"],
+//       "@middleware/*": ["src/middleware/*"],
+//       "@types/*": ["src/types/*"]
+//     }
+//   },
+//   "include": [
+//     "src/**/*",
+//     "tsconfig.json"
+//   ] /* Include all TypeScript files in the src folder. */,
+//   "exclude": [
+//     "node_modules" /* Exclude node_modules folder. */,
+//     "dist" /* Exclude dist folder to prevent issues with output files. */,
+//     "**/*.test.ts" /* Exclude test files from compilation. */
+//   ]
+// }
+
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "rootDir": "./src", // The root directory for source files
+    "outDir": "./dist", // Output folder for transpiled files
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "removeComments": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".", // Base directory for module resolution
+    "paths": {
+      /* Remove these if they aren't necessary */
+      "@routes/*": ["src/routes/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@types/*": ["src/types/*"]
+    }
+  },
+  "include": ["src/**/*"] // Include everything inside the src folder
+}

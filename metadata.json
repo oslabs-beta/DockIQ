@@ -3,14 +3,30 @@
   "vm": {
     "composefile": "docker-compose.yaml",
     "exposes": {
-      "socket": "backend.sock"
+      "socket": "/run/guest-services/backend.sock"
     }
   },
   "ui": {
     "dashboard-tab": {
-      "title": "Dockiq",
-      "src": "index.html",
+      "title": "DockIQ",
+      "src": "http://localhost:3001",
       "root": "ui"
     }
-  }
+  },
+  "backend": {
+    "socket": "/run/guest-services/backend.sock"
+  },
+  "extensions": {
+    "docker_desktop_extension": true
+  },
+  "volumes": [
+    {
+      "name": "grafana-data",
+      "path": "/var/lib/grafana"
+    },
+    {
+      "name": "prometheus-data",
+      "path": "/prometheus"
+    }
+  ]
 }
