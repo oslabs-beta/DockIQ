@@ -108,7 +108,9 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_SECURITY_ALLOW_EMBEDDING: true
-      GF_SERVER_ROOT_URL: http://grafana:3000
+      GF_SESSION_PROVIDER: file # Ensures sessions persist
+      GF_SESSION_LIFE_TIME: 86400 # Session lifetime: 24 hours
+      GF_SERVER_ROOT_URL: http://localhost:3006 # Adjusted for browser access
       GF_SERVER_SERVE_FROM_SUB_PATH: true
     volumes:
       - grafana-data:/var/lib/grafana
