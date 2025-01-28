@@ -112,6 +112,11 @@ services:
       GF_SESSION_LIFE_TIME: 86400 # Session lifetime: 24 hours
       GF_SERVER_ROOT_URL: http://localhost:3006 # Adjusted for browser access
       GF_SERVER_SERVE_FROM_SUB_PATH: true
+
+      # Enable anonymous access
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_NAME: Main Org.
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer # Limits anonymous users to view-only access
     volumes:
       - grafana-data:/var/lib/grafana
     networks:
