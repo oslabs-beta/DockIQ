@@ -16,6 +16,8 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import Brightness4Icon from '@mui/icons-material/Brightness4'; // Dark mode icon
+import Brightness7Icon from '@mui/icons-material/Brightness7'; // Light mode icon
 
 interface Container {
   name: string;
@@ -40,7 +42,8 @@ const DockIQ: React.FC = () => {
   const [tabValue, setTabValue] = useState<number>(0);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
-
+  const [isDarkMode, setIsDarkMode] = useState(false); // State for dark mode
+  
   // WebSocket connection for real-time updates
   useEffect(() => {
     const socket = new WebSocket('ws://localhost:3003/api/metrics-stream');
@@ -167,27 +170,55 @@ const DockIQ: React.FC = () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setIsRefreshing(false);
   };
+// Toggle dark mode
+const toggleDarkMode = () => {
+  setIsDarkMode((prev) => !prev);
+};
+
 
   return (
-    <Box
+<Box
+  sx={{
+    minHeight: '100vh',
+    bgcolor: isDarkMode ? 'background.paper' : 'background.default', // Dynamic background
+    p: 4,
+    color: isDarkMode ? 'text.primary' : 'text.secondary', // Dynamic text color
+  }}
+>
+{/* Header with Dark/Light Mode Buttons */}
+<Box
+  sx={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    mb: 4,
+  }}
+>
+  <Typography
+    variant='h4'
+    component='h1'
+    sx={{
+      color: 'primary.main',
+      fontWeight: 600,
+    }}
+  >
+    DockIQ
+  </Typography>
+  <Box>
+    <IconButton
+      onClick={toggleDarkMode}
       sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        p: 4,
+        bgcolor: isDarkMode ? 'primary.main' : 'grey.300',
+        color: isDarkMode ? 'common.white' : 'common.black',
+        mr: 2,
+        borderRadius: '50%',
       }}
+      aria-label={isDarkMode ? 'Light Mode' : 'Dark Mode'}
     >
-      {/* Header */}
-      <Typography
-        variant='h4'
-        component='h1'
-        sx={{
-          color: 'primary.main',
-          fontWeight: 600,
-          mb: 4,
-        }}
-      >
-        DockIQ
-      </Typography>
+      {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+    </IconButton>
+  </Box>
+</Box>
 
       {/* Status Cards */}
       <Box
