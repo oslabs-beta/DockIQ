@@ -332,11 +332,11 @@ const DockIQ: React.FC = () => {
                     <TableCell colSpan={9}>
                       <Box sx={{ p: 2 }}>
                         <iframe
-                          src='http://localhost:3006/d/febaya9xv5iiof/cpu-usage-display?orgId=1&var-container=dockiq2-backend-1&viewPanel=panel-1&kiosk=true'
+                          src='http://localhost:3006/public-dashboards/08aded82fd6b49e09b2b4a4086cc0406'
                           width='100%'
                           height='400px'
-                          title='Grafana Dashboard'
-                        ></iframe>
+                          title='Grafana Dashboard for All Containers'
+                        />
                       </Box>
                     </TableCell>
                   </TableRow>
