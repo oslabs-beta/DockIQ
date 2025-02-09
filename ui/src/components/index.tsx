@@ -25,7 +25,6 @@ interface Container {
   memPercent: string;
   cpuPercent: string;
   netIO: string;
-  blockIO: string;
   pids: string;
 }
 
@@ -125,18 +124,6 @@ const DockIQ: React.FC = () => {
             containerMetrics[containerName].netIO || '--'
           } / ${Math.round(value / 1024)} KB`,
         };
-      } else if (line.includes('container_block_read_bytes')) {
-        containerMetrics[containerName] = {
-          ...containerMetrics[containerName],
-          blockIO: `${Math.round(value / 1024)} KB / --`,
-        };
-      } else if (line.includes('container_block_write_bytes')) {
-        containerMetrics[containerName] = {
-          ...containerMetrics[containerName],
-          blockIO: `${
-            containerMetrics[containerName].blockIO || '--'
-          } / ${Math.round(value / 1024)} KB`,
-        };
       } else if (line.includes('container_pids')) {
         containerMetrics[containerName] = {
           ...containerMetrics[containerName],
@@ -153,7 +140,6 @@ const DockIQ: React.FC = () => {
       memPercent: container.memPercent || '--',
       cpuPercent: container.cpuPercent || '--',
       netIO: container.netIO || '--',
-      blockIO: container.blockIO || '--',
       pids: container.pids || '--',
     }));
   };
@@ -267,7 +253,6 @@ const DockIQ: React.FC = () => {
               <TableCell>MEM %</TableCell>
               <TableCell>MEM USAGE</TableCell>
               <TableCell>NET I/O</TableCell>
-              <TableCell>BLOCK I/O</TableCell>
               <TableCell>PIDS</TableCell>
               <TableCell></TableCell>
             </TableRow>
@@ -305,7 +290,6 @@ const DockIQ: React.FC = () => {
                   <TableCell>{container.memPercent || '--'}</TableCell>
                   <TableCell>{container.memUsage}</TableCell>
                   <TableCell>{container.netIO}</TableCell>
-                  <TableCell>{container.blockIO}</TableCell>
                   <TableCell>{container.pids}</TableCell>
                   <TableCell>
                     <IconButton
