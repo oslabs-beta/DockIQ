@@ -7,6 +7,9 @@ FROM dockiq-backend:latest as backend
 # Base image for Prometheus
 FROM prom/prometheus:latest as prometheus
 
+# Pull the Grafana image
+FROM grafana/grafana:latest as grafana
+
 # Final image for the Docker Desktop extension
 FROM alpine:3.15
 
@@ -19,9 +22,12 @@ COPY --from=backend /app/backend/dist /app/backend
 # Copy Prometheus configuration file
 COPY --from=prometheus /etc/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
 
+# Copy the custom Grafana configuration file
+COPY grafana/grafana.ini /etc/grafana/grafana.ini
+
 # Copy extension metadata and other assets
-COPY metadata.json .
-COPY docker-compose.yaml .
+COPY metadata.json . 
+COPY docker-compose.yaml . 
 COPY docker.svg .
 
 # Set extension labels, etc.
