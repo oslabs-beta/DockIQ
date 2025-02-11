@@ -1,66 +1,3 @@
-# services:
-#   backend:
-#     image: dockiq-backend:latest
-#     ports:
-#       - '3003:3003' # Map backend's internal port 3003 to host's port 3003
-#     environment:
-#       NODE_ENV: production
-#       PORT: 3003
-#       PROMETHEUS_URL: http://prometheus:9090
-#       GRAFANA_URL: http://grafana:3000
-#     volumes:
-#       - /var/run/docker.sock:/var/run/docker.sock
-#     depends_on:
-#       - prometheus
-#       - grafana
-#     networks:
-#       - dockiq-network
-
-#   frontend:
-#     image: dockiq-frontend:latest
-#     ports:
-#       - '3001:3000' # Map frontend's internal port 3000 to host's port 3001
-#     environment:
-#       NODE_ENV: production
-#       BACKEND_URL: http://backend:3003
-#     depends_on:
-#       - backend
-#     networks:
-#       - dockiq-network
-
-#   prometheus:
-#     image: dockiq-prometheus:latest
-#     ports:
-#       - '9094:9090' # Map Prometheus's internal port 9090 to host's port 9094
-#     volumes:
-#       - prometheus-data:/prometheus
-#     networks:
-#       - dockiq-network
-
-#   grafana:
-#     image: grafana/grafana
-#     ports:
-#       - '3006:3000' # Map Grafana's internal port 3000 to host's port 3006
-#     environment:
-#       GF_SECURITY_ADMIN_USER: admin
-#       GF_SECURITY_ADMIN_PASSWORD: admin
-#       GF_SECURITY_ALLOW_EMBEDDING: true
-#       GF_SERVER_ROOT_URL: http://localhost:3006 # Update root_url to match the host or subpath
-#       GF_SERVER_SERVE_FROM_SUB_PATH: true # Ensure Grafana serves from subpaths correctly
-#     volumes:
-#       - grafana-data:/var/lib/grafana
-#     networks:
-#       - dockiq-network
-
-# volumes:
-#   grafana-data: # Declare the named volume for Grafana
-#     external: true
-#   prometheus-data: # Declare the named volume for Prometheus
-#     external: true
-
-# networks:
-#   dockiq-network:
-#     driver: bridge
 services:
   backend:
     image: dockiq-backend:latest
@@ -105,8 +42,14 @@ services:
     ports:
       - '3006:3000'
     volumes:
-      - ./grafana.ini:/etc/grafana/grafana.ini # Mounts your local grafana.ini
       - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SERVER_ROOT_URL=http://localhost:3006
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_FEATURE_TOGGLES_PUBLIC_DASHBOARDS=true
     networks:
       - dockiq-network
 
