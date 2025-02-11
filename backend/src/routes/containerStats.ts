@@ -11,7 +11,7 @@ const register = new client.Registry();
 // Define Prometheus gauges to track container metrics
 const cpuGauge = new client.Gauge({
   name: 'container_cpu_usage',
-  help: 'CPU usage of a container',
+  help: 'CPU usage of a container (percentage)',
   labelNames: ['container'] as const,
 });
 const memGauge = new client.Gauge({
