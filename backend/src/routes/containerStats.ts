@@ -29,16 +29,6 @@ const networkTxGauge = new client.Gauge({
   help: 'Network transmit bytes of a container',
   labelNames: ['container'] as const,
 });
-const blockReadGauge = new client.Gauge({
-  name: 'container_block_read_bytes',
-  help: 'Block I/O read bytes of a container',
-  labelNames: ['container'] as const,
-});
-const blockWriteGauge = new client.Gauge({
-  name: 'container_block_write_bytes',
-  help: 'Block I/O write bytes of a container',
-  labelNames: ['container'] as const,
-});
 const pidsGauge = new client.Gauge({
   name: 'container_pids',
   help: 'Number of PIDs in a container',
@@ -50,8 +40,6 @@ register.registerMetric(cpuGauge);
 register.registerMetric(memGauge);
 register.registerMetric(networkRxGauge);
 register.registerMetric(networkTxGauge);
-register.registerMetric(blockReadGauge);
-register.registerMetric(blockWriteGauge);
 register.registerMetric(pidsGauge);
 
 // Function to update Prometheus metrics
@@ -78,8 +66,6 @@ const updatePrometheusMetrics = async () => {
       memGauge.remove({ container: containerName });
       networkRxGauge.remove({ container: containerName });
       networkTxGauge.remove({ container: containerName });
-      blockReadGauge.remove({ container: containerName });
-      blockWriteGauge.remove({ container: containerName });
       pidsGauge.remove({ container: containerName });
       console.log(`Removed metrics for container: ${containerName}`);
     } else if (typeof containerName !== 'string') {
@@ -128,13 +114,6 @@ const updatePrometheusMetrics = async () => {
         const netRx = containerStats.networks?.eth0?.rx_bytes || 0;
         const netTx = containerStats.networks?.eth0?.tx_bytes || 0;
 
-        // Block I/O
-        const blkioStats: { op: string; value: number }[] =
-          containerStats.blkio_stats?.io_service_bytes_recursive || [];
-        const blockRead = blkioStats.find((io) => io.op === 'Read')?.value || 0;
-        const blockWrite =
-          blkioStats.find((io) => io.op === 'Write')?.value || 0;
-
         // PIDs
         const pids = containerStats.pids_stats?.current || 0;
 
@@ -143,8 +122,6 @@ const updatePrometheusMetrics = async () => {
         memGauge.set({ container: containerName }, memUsage);
         networkRxGauge.set({ container: containerName }, netRx);
         networkTxGauge.set({ container: containerName }, netTx);
-        blockReadGauge.set({ container: containerName }, blockRead);
-        blockWriteGauge.set({ container: containerName }, blockWrite);
         pidsGauge.set({ container: containerName }, pids);
 
         console.log(
