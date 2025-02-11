@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import Docker from 'dockerode';
 import { Application } from 'express';
 import expressWs from 'express-ws';
-import client from 'prom-client'; // Prometheus client library
+import client from 'prom-client';
+import fs from 'fs';
 
 // Initialize Docker and Prometheus Registry
 const docker = new Docker();
@@ -48,9 +49,50 @@ register.registerMetric(networkRxGauge);
 register.registerMetric(networkTxGauge);
 register.registerMetric(pidsGauge);
 
-// Store the last collected metrics
+// Read system-wide memory limit
+const getSystemMemoryLimit = (): number => {
+  try {
+    const data = fs.readFileSync('/proc/meminfo', 'utf8');
+    const match = data.match(/MemTotal:\s+(\d+)/);
+    if (match) {
+      return parseInt(match[1], 10) * 1024; // Convert kB to bytes
+    }
+  } catch (error) {
+    console.error('[ERROR] Failed to read system memory limit:', error);
+  }
+  return 8 * 1024 * 1024 * 1024; // Default to 8GB if unknown
+};
+
+// Get actual memory limit per container
+const getContainerMemoryLimit = async (
+  containerId: string
+): Promise<number> => {
+  try {
+    const containerInfo = await docker.getContainer(containerId).inspect();
+    let memLimit = containerInfo.HostConfig.Memory || 0;
+
+    // If no limit is set, use system-wide memory as fallback
+    if (memLimit === 0) {
+      console.warn(
+        `[WARNING] ${containerInfo.Name} has NO memory limit set! Using system memory.`
+      );
+      memLimit = getSystemMemoryLimit();
+    }
+
+    return memLimit;
+  } catch (error) {
+    console.error(
+      `[ERROR] Failed to get memory limit for ${containerId}:`,
+      error
+    );
+    return getSystemMemoryLimit(); // Use system memory as fallback
+  }
+};
+
+// Store latest Prometheus metrics
 let lastMetrics = '';
 
+// Update Prometheus metrics
 const updatePrometheusMetrics = async () => {
   try {
     const containers = await docker.listContainers({ all: true });
@@ -87,14 +129,17 @@ const updatePrometheusMetrics = async () => {
 
           // Memory Usage
           const memUsage = containerStats.memory_stats.usage || 0;
-          const memLimit =
-            containerStats.memory_stats.limit > 0
-              ? containerStats.memory_stats.limit
-              : memUsage;
-          const memPercent = Math.min(
-            (memUsage / Math.max(1, memLimit)) * 100,
-            100
-          );
+          let memLimit = await getContainerMemoryLimit(containerInfo.Id);
+
+          // Ensure memLimit is always a valid number
+          if (!memLimit || memLimit <= 0) {
+            console.warn(
+              `[WARNING] ${containerName} has NO valid memory limit! Using fallback.`
+            );
+            memLimit = getSystemMemoryLimit();
+          }
+
+          const memPercent = (memUsage / memLimit) * 100;
 
           // Debug Log for Memory Values
           console.log(
@@ -117,7 +162,7 @@ const updatePrometheusMetrics = async () => {
           // Update Prometheus metrics
           cpuGauge.set({ container: containerName }, cpuPercent);
           memGauge.set({ container: containerName }, memUsage);
-          memPercentGauge.set({ container: containerName }, memPercent * 100);
+          memPercentGauge.set({ container: containerName }, memPercent);
           networkRxGauge.set({ container: containerName }, netRx);
           networkTxGauge.set({ container: containerName }, netTx);
           pidsGauge.set({ container: containerName }, pids);
