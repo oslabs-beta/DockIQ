@@ -117,7 +117,7 @@ const updatePrometheusMetrics = async () => {
           // Update Prometheus metrics
           cpuGauge.set({ container: containerName }, cpuPercent);
           memGauge.set({ container: containerName }, memUsage);
-          memPercentGauge.set({ container: containerName }, memPercent);
+          memPercentGauge.set({ container: containerName }, memPercent * 100);
           networkRxGauge.set({ container: containerName }, netRx);
           networkTxGauge.set({ container: containerName }, netTx);
           pidsGauge.set({ container: containerName }, pids);
