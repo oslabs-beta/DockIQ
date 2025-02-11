@@ -16,7 +16,12 @@ const cpuGauge = new client.Gauge({
 });
 const memGauge = new client.Gauge({
   name: 'container_memory_usage',
-  help: 'Memory usage of a container',
+  help: 'Memory usage of a container in bytes',
+  labelNames: ['container'] as const,
+});
+const memPercentGauge = new client.Gauge({
+  name: 'container_memory_percentage',
+  help: 'Memory usage percentage of a container',
   labelNames: ['container'] as const,
 });
 const networkRxGauge = new client.Gauge({
@@ -38,152 +43,133 @@ const pidsGauge = new client.Gauge({
 // Register all metrics
 register.registerMetric(cpuGauge);
 register.registerMetric(memGauge);
+register.registerMetric(memPercentGauge);
 register.registerMetric(networkRxGauge);
 register.registerMetric(networkTxGauge);
 register.registerMetric(pidsGauge);
 
-// Function to update Prometheus metrics
+// Store the last collected metrics
+let lastMetrics = '';
+
 const updatePrometheusMetrics = async () => {
-  const containers = await docker.listContainers({ all: true });
+  try {
+    const containers = await docker.listContainers({ all: true });
 
-  // Get the list of active container names
-  const activeContainerNames = containers.map((containerInfo) =>
-    containerInfo.Names[0]?.replace(/^\//, '')
-  );
-
-  // Remove metrics for containers that no longer exist
-  const registeredContainers = (await cpuGauge.get()).values.map(
-    (value) => value.labels.container
-  );
-
-  registeredContainers.forEach((containerName) => {
-    if (
-      typeof containerName === 'string' &&
-      !activeContainerNames.includes(containerName)
-    ) {
-      // Remove metrics
-      cpuGauge.remove({ container: containerName });
-      memGauge.remove({ container: containerName });
-      networkRxGauge.remove({ container: containerName });
-      networkTxGauge.remove({ container: containerName });
-      pidsGauge.remove({ container: containerName });
-      console.log(`Removed metrics for container: ${containerName}`);
-    } else if (typeof containerName !== 'string') {
-      console.warn(`Invalid container name: ${containerName}`);
+    if (containers.length === 0) {
+      console.log('No containers found.');
+      return;
     }
-  });
 
-  // If no active containers, log and exit
-  if (containers.length === 0) {
-    console.log('No containers found.');
-    return;
-  }
+    await Promise.all(
+      containers.map(async (containerInfo) => {
+        const containerInstance = docker.getContainer(containerInfo.Id);
+        const containerName =
+          containerInfo.Names[0]?.replace(/^\//, '') || 'unknown';
 
-  await Promise.all(
-    containers.map(async (containerInfo) => {
-      const containerInstance = docker.getContainer(containerInfo.Id);
-      const containerName =
-        containerInfo.Names[0]?.replace(/^\//, '') || 'unknown';
-
-      try {
-        const containerStats: any = await new Promise((resolve, reject) => {
-          containerInstance.stats({ stream: false }, (err, data) => {
-            if (err) reject(err);
-            else resolve(data);
+        try {
+          const containerStats: any = await containerInstance.stats({
+            stream: false,
           });
-        });
 
-        // CPU Usage Calculation
-        const cpuDelta =
-          containerStats.cpu_stats.cpu_usage.total_usage -
-          containerStats.precpu_stats.cpu_usage.total_usage;
-        const systemDelta =
-          containerStats.cpu_stats.system_cpu_usage -
-          containerStats.precpu_stats.system_cpu_usage;
-        const onlineCPUs = containerStats.cpu_stats.online_cpus || 1;
+          // CPU Usage Calculation
+          const cpuDelta =
+            containerStats.cpu_stats.cpu_usage.total_usage -
+            containerStats.precpu_stats.cpu_usage.total_usage;
+          const systemDelta =
+            containerStats.cpu_stats.system_cpu_usage -
+            containerStats.precpu_stats.system_cpu_usage;
+          const onlineCPUs = containerStats.cpu_stats.online_cpus || 1;
 
-        let cpuPercent = 0;
-        if (systemDelta > 0 && cpuDelta > 0) {
-          cpuPercent = (cpuDelta / systemDelta) * onlineCPUs * 100;
+          let cpuPercent = 0;
+          if (systemDelta > 0 && cpuDelta > 0) {
+            cpuPercent = (cpuDelta / systemDelta) * onlineCPUs * 100;
+          }
+
+          // Memory Usage
+          const memUsage = containerStats.memory_stats.usage || 0;
+          const memLimit =
+            containerStats.memory_stats.limit > 0
+              ? containerStats.memory_stats.limit
+              : memUsage;
+          const memPercent = Math.min(
+            (memUsage / Math.max(1, memLimit)) * 100,
+            100
+          );
+
+          // Debug Log for Memory Values
+          console.log(
+            `Container: ${containerName} | Mem Usage: ${(
+              memUsage /
+              1024 /
+              1024
+            ).toFixed(2)} MB | Mem Limit: ${(memLimit / 1024 / 1024).toFixed(
+              2
+            )} MB | Mem %: ${memPercent.toFixed(2)}%`
+          );
+
+          // Network I/O
+          const netRx = containerStats.networks?.eth0?.rx_bytes || 0;
+          const netTx = containerStats.networks?.eth0?.tx_bytes || 0;
+
+          // PIDs
+          const pids = containerStats.pids_stats?.current || 0;
+
+          // Update Prometheus metrics
+          cpuGauge.set({ container: containerName }, cpuPercent);
+          memGauge.set({ container: containerName }, memUsage);
+          memPercentGauge.set({ container: containerName }, memPercent);
+          networkRxGauge.set({ container: containerName }, netRx);
+          networkTxGauge.set({ container: containerName }, netTx);
+          pidsGauge.set({ container: containerName }, pids);
+
+          console.log(
+            `Updated metrics for ${containerName} - CPU: ${cpuPercent.toFixed(
+              2
+            )}%, Mem: ${memPercent.toFixed(2)}%, Mem Usage: ${memUsage} bytes`
+          );
+        } catch (error) {
+          console.error(
+            `Error updating metrics for container ${containerName}`,
+            error
+          );
         }
+      })
+    );
 
-        // Memory Usage
-        const memUsage = containerStats.memory_stats.usage || 0;
-
-        // Network I/O
-        const netRx = containerStats.networks?.eth0?.rx_bytes || 0;
-        const netTx = containerStats.networks?.eth0?.tx_bytes || 0;
-
-        // PIDs
-        const pids = containerStats.pids_stats?.current || 0;
-
-        // Update Prometheus metrics
-        cpuGauge.set({ container: containerName }, cpuPercent);
-        memGauge.set({ container: containerName }, memUsage);
-        networkRxGauge.set({ container: containerName }, netRx);
-        networkTxGauge.set({ container: containerName }, netTx);
-        pidsGauge.set({ container: containerName }, pids);
-
-        console.log(
-          `Updated metrics for ${containerName} - CPU: ${cpuPercent}%, Memory: ${memUsage} bytes`
-        );
-      } catch (error) {
-        console.error(
-          `Error updating metrics for container ${containerName}`,
-          error
-        );
-      }
-    })
-  );
+    // Cache latest metrics
+    lastMetrics = await register.metrics();
+  } catch (error) {
+    console.error('Error updating Prometheus metrics:', error);
+  }
 };
 
-// Create the Express router
+// Start updating metrics every 5 seconds in the background
+setInterval(updatePrometheusMetrics, 5000);
+
 export default (app: Application) => {
   expressWs(app); // Initialize express-ws on the app
   const router = Router();
 
-  // REST API endpoint to fetch Prometheus metrics
-  router.get('/metrics', async (_req: Request, res: Response) => {
-    console.log('Received request for /metrics');
-
-    try {
-      await updatePrometheusMetrics(); // Update metrics before serving
-
-      const metrics = await register.metrics(); // Fetch metrics
-      res.set('Content-Type', register.contentType);
-      res.send(metrics); // Serve metrics
-    } catch (error) {
-      console.error('Error fetching Prometheus metrics:', error);
-      res.status(500).send('Error fetching Prometheus metrics');
-    }
+  // Serve cached metrics instantly
+  router.get('/metrics', (_req: Request, res: Response) => {
+    res.set('Content-Type', register.contentType);
+    res.send(lastMetrics);
   });
 
   // WebSocket endpoint to stream Prometheus metrics
   router.ws('/metrics-stream', (ws) => {
     console.log('WebSocket client connected for metrics.');
 
-    const sendMetrics = async () => {
-      try {
-        // Fetch and update Prometheus metrics
-        await updatePrometheusMetrics();
-
-        // Retrieve all metrics from the registry
-        const metrics = await register.metrics();
-
-        // Send the metrics to the WebSocket client
-        ws.send(JSON.stringify({ metrics }));
-      } catch (error) {
-        console.error('Error streaming Prometheus metrics:', error);
-        ws.send(JSON.stringify({ error: 'Error streaming metrics' }));
-      }
+    const sendMetrics = () => {
+      ws.send(JSON.stringify({ metrics: lastMetrics }));
     };
 
-    // Send metrics periodically (every 500ms)
-    const interval = setInterval(sendMetrics, 500);
+    // Send metrics every 2 seconds instead of 500ms
+    const interval = setInterval(sendMetrics, 2000);
 
     ws.on('close', () => {
       console.log('WebSocket client disconnected.');
-      clearInterval(interval); // Stop sending metrics when the client disconnects
+      clearInterval(interval);
     });
   });
 

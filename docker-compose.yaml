@@ -38,18 +38,11 @@ services:
       - dockiq-network
 
   grafana:
-    image: grafana/grafana
+    image: custom-grafana # Use the custom image you just built
     ports:
       - '3006:3000'
     volumes:
       - grafana-data:/var/lib/grafana
-    environment:
-      - GF_SERVER_ROOT_URL=http://localhost:3006
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      - GF_SECURITY_ALLOW_EMBEDDING=true
-      - GF_FEATURE_TOGGLES_PUBLIC_DASHBOARDS=true
     networks:
       - dockiq-network
 
