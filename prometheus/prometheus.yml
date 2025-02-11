@@ -1,6 +1,5 @@
 global:
   scrape_interval: 5s
-  scrape_timeout: 10s # Allow up to 10s for a response
 
 scrape_configs:
   # Scrape Prometheus itself
