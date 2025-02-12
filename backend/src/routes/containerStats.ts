@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import Docker from 'dockerode';
 import { Application } from 'express';
 import expressWs from 'express-ws';
-import client from 'prom-client'; // Prometheus client library
+import client from 'prom-client';
+import fs from 'fs';
 
 // Initialize Docker and Prometheus Registry
 const docker = new Docker();
@@ -11,12 +12,17 @@ const register = new client.Registry();
 // Define Prometheus gauges to track container metrics
 const cpuGauge = new client.Gauge({
   name: 'container_cpu_usage',
-  help: 'CPU usage of a container',
+  help: 'CPU usage of a container (percentage)',
   labelNames: ['container'] as const,
 });
 const memGauge = new client.Gauge({
   name: 'container_memory_usage',
-  help: 'Memory usage of a container',
+  help: 'Memory usage of a container in bytes',
+  labelNames: ['container'] as const,
+});
+const memPercentGauge = new client.Gauge({
+  name: 'container_memory_percentage',
+  help: 'Memory usage percentage of a container',
   labelNames: ['container'] as const,
 });
 const networkRxGauge = new client.Gauge({
@@ -29,16 +35,6 @@ const networkTxGauge = new client.Gauge({
   help: 'Network transmit bytes of a container',
   labelNames: ['container'] as const,
 });
-const blockReadGauge = new client.Gauge({
-  name: 'container_block_read_bytes',
-  help: 'Block I/O read bytes of a container',
-  labelNames: ['container'] as const,
-});
-const blockWriteGauge = new client.Gauge({
-  name: 'container_block_write_bytes',
-  help: 'Block I/O write bytes of a container',
-  labelNames: ['container'] as const,
-});
 const pidsGauge = new client.Gauge({
   name: 'container_pids',
   help: 'Number of PIDs in a container',
@@ -48,165 +44,177 @@ const pidsGauge = new client.Gauge({
 // Register all metrics
 register.registerMetric(cpuGauge);
 register.registerMetric(memGauge);
+register.registerMetric(memPercentGauge);
 register.registerMetric(networkRxGauge);
 register.registerMetric(networkTxGauge);
-register.registerMetric(blockReadGauge);
-register.registerMetric(blockWriteGauge);
 register.registerMetric(pidsGauge);
 
-// Function to update Prometheus metrics
-const updatePrometheusMetrics = async () => {
-  const containers = await docker.listContainers({ all: true });
-
-  // Get the list of active container names
-  const activeContainerNames = containers.map((containerInfo) =>
-    containerInfo.Names[0]?.replace(/^\//, '')
-  );
-
-  // Remove metrics for containers that no longer exist
-  const registeredContainers = (await cpuGauge.get()).values.map(
-    (value) => value.labels.container
-  );
-
-  registeredContainers.forEach((containerName) => {
-    if (
-      typeof containerName === 'string' &&
-      !activeContainerNames.includes(containerName)
-    ) {
-      // Remove metrics
-      cpuGauge.remove({ container: containerName });
-      memGauge.remove({ container: containerName });
-      networkRxGauge.remove({ container: containerName });
-      networkTxGauge.remove({ container: containerName });
-      blockReadGauge.remove({ container: containerName });
-      blockWriteGauge.remove({ container: containerName });
-      pidsGauge.remove({ container: containerName });
-      console.log(`Removed metrics for container: ${containerName}`);
-    } else if (typeof containerName !== 'string') {
-      console.warn(`Invalid container name: ${containerName}`);
+// Read system-wide memory limit
+const getSystemMemoryLimit = (): number => {
+  try {
+    const data = fs.readFileSync('/proc/meminfo', 'utf8');
+    const match = data.match(/MemTotal:\s+(\d+)/);
+    if (match) {
+      return parseInt(match[1], 10) * 1024; // Convert kB to bytes
     }
-  });
-
-  // If no active containers, log and exit
-  if (containers.length === 0) {
-    console.log('No containers found.');
-    return;
+  } catch (error) {
+    console.error('[ERROR] Failed to read system memory limit:', error);
   }
-
-  await Promise.all(
-    containers.map(async (containerInfo) => {
-      const containerInstance = docker.getContainer(containerInfo.Id);
-      const containerName =
-        containerInfo.Names[0]?.replace(/^\//, '') || 'unknown';
-
-      try {
-        const containerStats: any = await new Promise((resolve, reject) => {
-          containerInstance.stats({ stream: false }, (err, data) => {
-            if (err) reject(err);
-            else resolve(data);
-          });
-        });
-
-        // CPU Usage Calculation
-        const cpuDelta =
-          containerStats.cpu_stats.cpu_usage.total_usage -
-          containerStats.precpu_stats.cpu_usage.total_usage;
-        const systemDelta =
-          containerStats.cpu_stats.system_cpu_usage -
-          containerStats.precpu_stats.system_cpu_usage;
-        const onlineCPUs = containerStats.cpu_stats.online_cpus || 1;
-
-        let cpuPercent = 0;
-        if (systemDelta > 0 && cpuDelta > 0) {
-          cpuPercent = (cpuDelta / systemDelta) * onlineCPUs * 100;
-        }
-
-        // Memory Usage
-        const memUsage = containerStats.memory_stats.usage || 0;
-
-        // Network I/O
-        const netRx = containerStats.networks?.eth0?.rx_bytes || 0;
-        const netTx = containerStats.networks?.eth0?.tx_bytes || 0;
-
-        // Block I/O
-        const blkioStats: { op: string; value: number }[] =
-          containerStats.blkio_stats?.io_service_bytes_recursive || [];
-        const blockRead = blkioStats.find((io) => io.op === 'Read')?.value || 0;
-        const blockWrite =
-          blkioStats.find((io) => io.op === 'Write')?.value || 0;
-
-        // PIDs
-        const pids = containerStats.pids_stats?.current || 0;
-
-        // Update Prometheus metrics
-        cpuGauge.set({ container: containerName }, cpuPercent);
-        memGauge.set({ container: containerName }, memUsage);
-        networkRxGauge.set({ container: containerName }, netRx);
-        networkTxGauge.set({ container: containerName }, netTx);
-        blockReadGauge.set({ container: containerName }, blockRead);
-        blockWriteGauge.set({ container: containerName }, blockWrite);
-        pidsGauge.set({ container: containerName }, pids);
-
-        console.log(
-          `Updated metrics for ${containerName} - CPU: ${cpuPercent}%, Memory: ${memUsage} bytes`
-        );
-      } catch (error) {
-        console.error(
-          `Error updating metrics for container ${containerName}`,
-          error
-        );
-      }
-    })
-  );
+  return 8 * 1024 * 1024 * 1024; // Default to 8GB if unknown
 };
 
-// Create the Express router
+// Get actual memory limit per container
+const getContainerMemoryLimit = async (
+  containerId: string
+): Promise<number> => {
+  try {
+    const containerInfo = await docker.getContainer(containerId).inspect();
+    let memLimit = containerInfo.HostConfig.Memory || 0;
+
+    // If no limit is set, use system-wide memory as fallback
+    if (memLimit === 0) {
+      console.warn(
+        `[WARNING] ${containerInfo.Name} has NO memory limit set! Using system memory.`
+      );
+      memLimit = getSystemMemoryLimit();
+    }
+
+    return memLimit;
+  } catch (error) {
+    console.error(
+      `[ERROR] Failed to get memory limit for ${containerId}:`,
+      error
+    );
+    return getSystemMemoryLimit(); // Use system memory as fallback
+  }
+};
+
+// Store latest Prometheus metrics
+let lastMetrics = '';
+
+// Update Prometheus metrics
+const updatePrometheusMetrics = async () => {
+  try {
+    const containers = await docker.listContainers({ all: true });
+
+    if (containers.length === 0) {
+      console.log('No containers found.');
+      return;
+    }
+
+    await Promise.all(
+      containers.map(async (containerInfo) => {
+        const containerInstance = docker.getContainer(containerInfo.Id);
+        const containerName =
+          containerInfo.Names[0]?.replace(/^\//, '') || 'unknown';
+
+        try {
+          const containerStats: any = await containerInstance.stats({
+            stream: false,
+          });
+
+          // CPU Usage Calculation
+          const cpuDelta =
+            containerStats.cpu_stats.cpu_usage.total_usage -
+            containerStats.precpu_stats.cpu_usage.total_usage;
+          const systemDelta =
+            containerStats.cpu_stats.system_cpu_usage -
+            containerStats.precpu_stats.system_cpu_usage;
+          const onlineCPUs = containerStats.cpu_stats.online_cpus || 1;
+
+          let cpuPercent = 0;
+          if (systemDelta > 0 && cpuDelta > 0) {
+            cpuPercent = (cpuDelta / systemDelta) * onlineCPUs * 100;
+          }
+
+          // Memory Usage
+          const memUsage = containerStats.memory_stats.usage || 0;
+          let memLimit = await getContainerMemoryLimit(containerInfo.Id);
+
+          // Ensure memLimit is always a valid number
+          if (!memLimit || memLimit <= 0) {
+            console.warn(
+              `[WARNING] ${containerName} has NO valid memory limit! Using fallback.`
+            );
+            memLimit = getSystemMemoryLimit();
+          }
+
+          const memPercent = (memUsage / memLimit) * 100;
+
+          // Debug Log for Memory Values
+          console.log(
+            `Container: ${containerName} | Mem Usage: ${(
+              memUsage /
+              1024 /
+              1024
+            ).toFixed(2)} MB | Mem Limit: ${(memLimit / 1024 / 1024).toFixed(
+              2
+            )} MB | Mem %: ${memPercent.toFixed(2)}%`
+          );
+
+          // Network I/O
+          const netRx = containerStats.networks?.eth0?.rx_bytes || 0;
+          const netTx = containerStats.networks?.eth0?.tx_bytes || 0;
+
+          // PIDs
+          const pids = containerStats.pids_stats?.current || 0;
+
+          // Update Prometheus metrics
+          cpuGauge.set({ container: containerName }, cpuPercent);
+          memGauge.set({ container: containerName }, memUsage);
+          memPercentGauge.set({ container: containerName }, memPercent);
+          networkRxGauge.set({ container: containerName }, netRx);
+          networkTxGauge.set({ container: containerName }, netTx);
+          pidsGauge.set({ container: containerName }, pids);
+
+          console.log(
+            `Updated metrics for ${containerName} - CPU: ${cpuPercent.toFixed(
+              2
+            )}%, Mem: ${memPercent.toFixed(2)}%, Mem Usage: ${memUsage} bytes`
+          );
+        } catch (error) {
+          console.error(
+            `Error updating metrics for container ${containerName}`,
+            error
+          );
+        }
+      })
+    );
+
+    // Cache latest metrics
+    lastMetrics = await register.metrics();
+  } catch (error) {
+    console.error('Error updating Prometheus metrics:', error);
+  }
+};
+
+// Start updating metrics every 5 seconds in the background
+setInterval(updatePrometheusMetrics, 5000);
+
 export default (app: Application) => {
   expressWs(app); // Initialize express-ws on the app
   const router = Router();
 
-  // REST API endpoint to fetch Prometheus metrics
-  router.get('/metrics', async (_req: Request, res: Response) => {
-    console.log('Received request for /metrics');
-
-    try {
-      await updatePrometheusMetrics(); // Update metrics before serving
-
-      const metrics = await register.metrics(); // Fetch metrics
-      res.set('Content-Type', register.contentType);
-      res.send(metrics); // Serve metrics
-    } catch (error) {
-      console.error('Error fetching Prometheus metrics:', error);
-      res.status(500).send('Error fetching Prometheus metrics');
-    }
+  // Serve cached metrics instantly
+  router.get('/metrics', (_req: Request, res: Response) => {
+    res.set('Content-Type', register.contentType);
+    res.send(lastMetrics);
   });
 
   // WebSocket endpoint to stream Prometheus metrics
   router.ws('/metrics-stream', (ws) => {
     console.log('WebSocket client connected for metrics.');
 
-    const sendMetrics = async () => {
-      try {
-        // Fetch and update Prometheus metrics
-        await updatePrometheusMetrics();
-
-        // Retrieve all metrics from the registry
-        const metrics = await register.metrics();
-
-        // Send the metrics to the WebSocket client
-        ws.send(JSON.stringify({ metrics }));
-      } catch (error) {
-        console.error('Error streaming Prometheus metrics:', error);
-        ws.send(JSON.stringify({ error: 'Error streaming metrics' }));
-      }
+    const sendMetrics = () => {
+      ws.send(JSON.stringify({ metrics: lastMetrics }));
     };
 
-    // Send metrics periodically (every 500ms)
-    const interval = setInterval(sendMetrics, 500);
+    // Send metrics every 2 seconds instead of 500ms
+    const interval = setInterval(sendMetrics, 2000);
 
     ws.on('close', () => {
       console.log('WebSocket client disconnected.');
-      clearInterval(interval); // Stop sending metrics when the client disconnects
+      clearInterval(interval);
     });
   });
 

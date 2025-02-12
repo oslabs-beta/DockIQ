@@ -1,0 +1,19 @@
+{
+  "devDependencies": {
+    "@types/dockerode": "^3.3.34",
+    "@types/express": "^5.0.0",
+    "@types/express-ws": "^3.0.5",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.3",
+    "@mui/material": "^6.4.3",
+    "dockerode": "^4.0.4",
+    "express": "^4.21.2",
+    "express-ws": "^5.0.2",
+    "prom-client": "^15.1.3"
+  }
+}

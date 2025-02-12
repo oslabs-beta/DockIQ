@@ -12,10 +12,7 @@ import {
   TableHead,
   TableRow,
   Chip,
-  IconButton,
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 interface Container {
   name: string;
@@ -25,7 +22,6 @@ interface Container {
   memPercent: string;
   cpuPercent: string;
   netIO: string;
-  blockIO: string;
   pids: string;
 }
 
@@ -38,16 +34,9 @@ const DockIQ: React.FC = () => {
     restarting: 0,
   });
   const [tabValue, setTabValue] = useState<number>(0);
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // WebSocket connection for real-time updates
   useEffect(() => {
     const socket = new WebSocket('ws://localhost:3003/api/metrics-stream');
-
-    socket.onopen = () => {
-      console.log('WebSocket connection established');
-    };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -58,7 +47,7 @@ const DockIQ: React.FC = () => {
         );
         setContainers(transformedContainers);
 
-        // Update status counts based on container states
+        // Update the count of different container statuses
         const counts = {
           running: transformedContainers.filter((c) => c.status === 'running')
             .length,
@@ -75,43 +64,34 @@ const DockIQ: React.FC = () => {
       }
     };
 
-    socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    socket.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-
     return () => {
       socket.close();
     };
   }, []);
 
-  // Helper function to transform Prometheus metrics into container objects
   const transformMetricsToContainers = (metrics: string): Container[] => {
     const lines = metrics.split('\n');
     const containerMetrics: Record<string, Partial<Container>> = {};
 
     lines.forEach((line) => {
-      const match = line.match(/container="([^"]+)"/); // Extract container name
-      if (!match) return; // Skip lines without a container label
+      const match = line.match(/container="([^"]+)"/);
+      if (!match) return;
 
       const containerName = match[1];
-      const valueMatch = line.match(/ ([0-9.]+)$/); // Extract metric value
+      const valueMatch = line.match(/ ([0-9.]+)$/);
       const value = valueMatch ? parseFloat(valueMatch[1]) : 0;
 
       if (line.includes('container_cpu_usage')) {
         containerMetrics[containerName] = {
           ...containerMetrics[containerName],
           name: containerName,
-          cpuPercent: `${value.toFixed(2)}%`, // Format as percentage
+          cpuPercent: `${value.toFixed(2)}%`,
         };
       } else if (line.includes('container_memory_usage')) {
         containerMetrics[containerName] = {
           ...containerMetrics[containerName],
-          memUsage: `${(value / 1024 / 1024).toFixed(2)} MB`, // Convert to MB
-          memPercent: `${((value / 1024 / 1024 / 1000) * 100).toFixed(2)}%`, // Scale for memory
+          memUsage: `${(value / 1024 / 1024).toFixed(2)} MB`,
+          memPercent: `${((value / 1024 / 1024 / 1000) * 100).toFixed(2)}%`,
         };
       } else if (line.includes('container_network_rx_bytes')) {
         containerMetrics[containerName] = {
@@ -125,18 +105,6 @@ const DockIQ: React.FC = () => {
             containerMetrics[containerName].netIO || '--'
           } / ${Math.round(value / 1024)} KB`,
         };
-      } else if (line.includes('container_block_read_bytes')) {
-        containerMetrics[containerName] = {
-          ...containerMetrics[containerName],
-          blockIO: `${Math.round(value / 1024)} KB / --`,
-        };
-      } else if (line.includes('container_block_write_bytes')) {
-        containerMetrics[containerName] = {
-          ...containerMetrics[containerName],
-          blockIO: `${
-            containerMetrics[containerName].blockIO || '--'
-          } / ${Math.round(value / 1024)} KB`,
-        };
       } else if (line.includes('container_pids')) {
         containerMetrics[containerName] = {
           ...containerMetrics[containerName],
@@ -147,49 +115,27 @@ const DockIQ: React.FC = () => {
 
     return Object.values(containerMetrics).map((container) => ({
       name: container.name || '--',
-      status: 'running', // Placeholder for now
-      warning: false, // Placeholder for now
+      status: 'running',
+      warning: false,
       memUsage: container.memUsage || '--',
       memPercent: container.memPercent || '--',
       cpuPercent: container.cpuPercent || '--',
       netIO: container.netIO || '--',
-      blockIO: container.blockIO || '--',
       pids: container.pids || '--',
     }));
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
-  };
-
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        p: 4,
-      }}
-    >
-      {/* Header */}
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: 4 }}>
       <Typography
         variant='h4'
         component='h1'
-        sx={{
-          color: 'primary.main',
-          fontWeight: 600,
-          mb: 4,
-        }}
+        sx={{ color: 'primary.main', fontWeight: 600, mb: 4 }}
       >
         DockIQ
       </Typography>
 
-      {/* Status Cards */}
+      {/* Status Cards (Running, Stopped, Unhealthy, Restarting) */}
       <Box
         sx={{
           display: 'flex',
@@ -237,111 +183,82 @@ const DockIQ: React.FC = () => {
               flex: 1,
             }}
           >
-            <Box
-              sx={{
-                bgcolor: status.color,
-                p: 1,
-                borderRadius: 1,
-                opacity: 0.8,
-              }}
+            <Typography
+              variant='h5'
+              sx={{ color: status.color, fontWeight: 600 }}
             >
-              <Typography variant='h5'>{status.count}</Typography>
-            </Box>
-            <Box>
-              <Typography variant='h6' sx={{ color: status.color }}>
-                {status.label}
-              </Typography>
-            </Box>
+              {status.count}
+            </Typography>
+            <Typography variant='h6' sx={{ color: status.color }}>
+              {status.label}
+            </Typography>
           </Paper>
         ))}
       </Box>
 
-      {/* Table */}
+      {/* Table View */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell>NAME</TableCell>
-              <TableCell>STATUS</TableCell>
-              <TableCell>CPU %</TableCell>
-              <TableCell>MEM %</TableCell>
-              <TableCell>MEM USAGE</TableCell>
-              <TableCell>NET I/O</TableCell>
-              <TableCell>BLOCK I/O</TableCell>
-              <TableCell>PIDS</TableCell>
-              <TableCell></TableCell>
+            <TableRow sx={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+              {[
+                'NAME',
+                'STATUS',
+                'CPU %',
+                'MEM %',
+                'MEM USAGE',
+                'NET I/O',
+                'PIDS',
+              ].map((header, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    position: 'relative',
+                    fontWeight: 600,
+                    '&::after':
+                      index !== 6
+                        ? {
+                            content: '""',
+                            position: 'absolute',
+                            right: 0,
+                            top: '25%', // Adjusted to make it shorter
+                            height: '50%', // Shorter than a full line
+                            width: '1px',
+                            backgroundColor: 'rgba(255,255,255,0.1)', // Subtle color
+                          }
+                        : {},
+                  }}
+                >
+                  {header}
+                </TableCell>
+              ))}
             </TableRow>
           </TableHead>
+
           <TableBody>
             {containers.map((container, index) => (
-              <React.Fragment key={index}>
-                <TableRow hover>
-                  <TableCell>{container.name}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={container.status}
-                      size='small'
-                      sx={{
-                        bgcolor:
-                          container.status === 'running'
-                            ? 'rgba(46, 125, 50, 0.2)'
-                            : container.status === 'unhealthy'
-                            ? 'rgba(211, 47, 47, 0.2)'
-                            : container.status === 'restarting'
-                            ? 'rgba(255, 167, 38, 0.2)'
-                            : 'rgba(158, 158, 158, 0.2)',
-                        color:
-                          container.status === 'running'
-                            ? '#66bb6a'
-                            : container.status === 'unhealthy'
-                            ? '#f44336'
-                            : container.status === 'restarting'
-                            ? '#ffa726'
-                            : '#9e9e9e',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>{container.cpuPercent || '--'}</TableCell>
-                  <TableCell>{container.memPercent || '--'}</TableCell>
-                  <TableCell>{container.memUsage}</TableCell>
-                  <TableCell>{container.netIO}</TableCell>
-                  <TableCell>{container.blockIO}</TableCell>
-                  <TableCell>{container.pids}</TableCell>
-                  <TableCell>
-                    <IconButton
-                      size='small'
-                      onClick={() =>
-                        setExpandedRows((prev) => ({
-                          ...prev,
-                          [index]: !prev[index],
-                        }))
-                      }
-                      sx={{
-                        transform: expandedRows[index]
-                          ? 'rotate(180deg)'
-                          : 'none',
-                        transition: 'transform 0.2s',
-                      }}
-                    >
-                      <KeyboardArrowDownIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-                {expandedRows[index] && (
-                  <TableRow>
-                    <TableCell colSpan={9}>
-                      <Box sx={{ p: 2 }}>
-                        <iframe
-                          src='http://localhost:3006/d/febaya9xv5iiof/cpu-usage-display?orgId=1&var-container=dockiq2-backend-1&viewPanel=panel-1&kiosk=true'
-                          width='100%'
-                          height='400px'
-                          title='Grafana Dashboard'
-                        ></iframe>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
+              <TableRow hover key={index}>
+                <TableCell>{container.name}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={container.status}
+                    size='small'
+                    sx={{
+                      bgcolor:
+                        container.status === 'running'
+                          ? 'rgba(46, 125, 50, 0.2)'
+                          : 'rgba(158, 158, 158, 0.2)',
+                      color:
+                        container.status === 'running' ? '#66bb6a' : '#9e9e9e',
+                    }}
+                  />
+                </TableCell>
+                <TableCell>{container.cpuPercent || '--'}</TableCell>
+                <TableCell>{container.memPercent || '--'}</TableCell>
+                <TableCell>{container.memUsage}</TableCell>
+                <TableCell>{container.netIO}</TableCell>
+                <TableCell>{container.pids}</TableCell>
+              </TableRow>
             ))}
           </TableBody>
         </Table>
