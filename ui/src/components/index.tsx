@@ -196,74 +196,73 @@ const DockIQ: React.FC = () => {
         ))}
       </Box>
 
-      {/* Tabs for Table View and Chart View */}
-      <Tabs
-        value={tabValue}
-        onChange={(event, newValue) => setTabValue(newValue)}
-        sx={{ mb: 2, borderBottom: '1px solid rgba(255,255,255,0.2)' }}
-      >
-        <Tab label='Table View' />
-        <Tab label='Chart View' />
-      </Tabs>
-
       {/* Table View */}
-      {tabValue === 0 && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>NAME</TableCell>
-                <TableCell>STATUS</TableCell>
-                <TableCell>CPU %</TableCell>
-                <TableCell>MEM %</TableCell>
-                <TableCell>MEM USAGE</TableCell>
-                <TableCell>NET I/O</TableCell>
-                <TableCell>PIDS</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {containers.map((container, index) => (
-                <TableRow hover key={index}>
-                  <TableCell>{container.name}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={container.status}
-                      size='small'
-                      sx={{
-                        bgcolor:
-                          container.status === 'running'
-                            ? 'rgba(46, 125, 50, 0.2)'
-                            : 'rgba(158, 158, 158, 0.2)',
-                        color:
-                          container.status === 'running'
-                            ? '#66bb6a'
-                            : '#9e9e9e',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>{container.cpuPercent || '--'}</TableCell>
-                  <TableCell>{container.memPercent || '--'}</TableCell>
-                  <TableCell>{container.memUsage}</TableCell>
-                  <TableCell>{container.netIO}</TableCell>
-                  <TableCell>{container.pids}</TableCell>
-                </TableRow>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+              {[
+                'NAME',
+                'STATUS',
+                'CPU %',
+                'MEM %',
+                'MEM USAGE',
+                'NET I/O',
+                'PIDS',
+              ].map((header, index) => (
+                <TableCell
+                  key={index}
+                  sx={{
+                    position: 'relative',
+                    fontWeight: 600,
+                    '&::after':
+                      index !== 6
+                        ? {
+                            content: '""',
+                            position: 'absolute',
+                            right: 0,
+                            top: '25%', // Adjusted to make it shorter
+                            height: '50%', // Shorter than a full line
+                            width: '1px',
+                            backgroundColor: 'rgba(255,255,255,0.1)', // Subtle color
+                          }
+                        : {},
+                  }}
+                >
+                  {header}
+                </TableCell>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+            </TableRow>
+          </TableHead>
 
-      {/* Chart View */}
-      {tabValue === 1 && (
-        <Box sx={{ p: 2, textAlign: 'center' }}>
-          <iframe
-            src='http://localhost:3006/public-dashboards/08aded82fd6b49e09b2b4a4086cc0406'
-            width='100%'
-            height='500px'
-            title='Grafana Dashboard'
-          />
-        </Box>
-      )}
+          <TableBody>
+            {containers.map((container, index) => (
+              <TableRow hover key={index}>
+                <TableCell>{container.name}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={container.status}
+                    size='small'
+                    sx={{
+                      bgcolor:
+                        container.status === 'running'
+                          ? 'rgba(46, 125, 50, 0.2)'
+                          : 'rgba(158, 158, 158, 0.2)',
+                      color:
+                        container.status === 'running' ? '#66bb6a' : '#9e9e9e',
+                    }}
+                  />
+                </TableCell>
+                <TableCell>{container.cpuPercent || '--'}</TableCell>
+                <TableCell>{container.memPercent || '--'}</TableCell>
+                <TableCell>{container.memUsage}</TableCell>
+                <TableCell>{container.netIO}</TableCell>
+                <TableCell>{container.pids}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 };
