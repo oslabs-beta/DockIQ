@@ -1,107 +1,54 @@
 # DockIQ
+Real-time Docker container monitoring and metrics visualization! 🐳
+![DockIQ Dashboard](assets/Dockiq.gif)
 
-This repository defines an example of a Docker extension. The files in this repository have been automatically generated as a result of running `docker extension init`.
+DockIQ provides an intuitive interface for monitoring Docker containers with real-time metrics and visualization capabilities.
 
-This extension is composed of:
+## Tech Stack
 
-- A [frontend](./ui) app in React that makes a request to the `/hello` endpoint and displays the payload in Docker Desktop.
-- A [backend](./backend) container that runs an API in Go. It exposes the `/hello` endpoint which returns a JSON payload.
+### Frontend:
+* React with TypeScript for robust type safety
+* Material-UI (MUI) for component styling and layout
+* WebSocket client for real-time data updates
 
-> You can build your Docker Extension using your fav tech stack:
->
-> - Frontend: React, Angular, Vue, Svelte, etc.
->   Basically, any frontend framework you can bundle in an `index.html` file with CSS, and JS assets.
-> - Backend (optional): anything that can run in a container.
+### Backend:
+* Node.js Express server with TypeScript
+* Dockerode for Docker engine interaction
+* Express-ws for WebSocket server implementation
+* Prom-client for Prometheus metrics collection
 
-<details>
-  <summary>Looking for more templates?</summary>
+### Monitoring & Visualization:
+* Prometheus for time-series data storage and querying
+* Grafana for advanced visualization capabilities
+* Docker for containerization and orchestration
 
-1. [React + NodeJS](https://github.com/benja-M-1/node-backend-extension).
-2. [React + .NET 6 WebAPI](https://github.com/felipecruz91/dotnet-api-docker-extension).
+## Features
 
-Request one or submit yours [here](https://github.com/docker/extensions-sdk/issues).
+### 📊 Real-time Metrics Monitoring
+DockIQ continuously tracks essential container metrics through our advanced monitoring system. The metrics tracking includes comprehensive CPU usage percentage monitoring, detailed memory utilization with both raw usage and percentage metrics, complete network I/O statistics, and current PID count for each container. All of these metrics are carefully stored in our Prometheus database with a configurable retention period to ensure you have access to historical data when you need it.
 
-</details>
+### 🔄 Live Status Updates
+Our real-time monitoring system provides immediate visibility into your container ecosystem. You can instantly see which containers are currently running, which ones have stopped, any containers that might be in an unhealthy state, and those that are in the process of restarting. This comprehensive status tracking ensures you're always aware of your containers' current state.
 
-## Local development
+### 📈 Beautiful Visualization
+The interface has been crafted using Material-UI to provide a clean, modern experience. The main dashboard presents a status overview with cards that give you immediate insight into your container ecosystem. Below this, you'll find a detailed metrics table that provides in-depth information about each container. All of this data is updated in real-time through our WebSocket connection, ensuring you always have the latest information at your fingertips.
 
-You can use `docker` to build, install and push your extension. Also, we provide an opinionated [Makefile](Makefile) that could be convenient for you. There isn't a strong preference of using one over the other, so just use the one you're most comfortable with.
+## How it works
+DockIQ operates through a sophisticated system of four main containerized services working in harmony. The backend service, built with Node.js, serves as the primary collector of Docker metrics, making this data available through both WebSocket connections and REST APIs. This data is then stored by our Prometheus service, which maintains time-series metrics with a precise 5-second scrape interval.
 
-To build the extension, use `make build-extension` **or**:
+The visualization layer is handled by Grafana, which provides additional analytical capabilities and graphing options. The frontend, developed in React, delivers a responsive and intuitive user interface that updates in real-time as new data becomes available.
 
-```shell
-  docker buildx build -t DockIQ/docker-extension:latest . --load
-```
+These services communicate seamlessly over a dedicated Docker network. Prometheus actively scrapes metrics from two sources: its own instance on port 9090 and the backend service endpoint at port 3003/api/metrics. The Grafana service is exposed on port 3006, and it's important to ensure this port is available for the extension to function correctly.
 
-To install the extension, use `make install-extension` **or**:
+## Installation & Usage
 
-```shell
-  docker extension install DockIQ/docker-extension:latest
-```
+### 1. Pull the Image from Docker Hub
+```bash
+# Pull latest version
+docker pull kimalena9/docker-extension:latest 
 
-> If you want to automate this command, use the `-f` or `--force` flag to accept the warning message.
+# For a specific version
+docker pull kimalena9/docker-extension:v1.0.0  # If you tagged a version
 
-To preview the extension in Docker Desktop, open Docker Dashboard once the installation is complete. The left-hand menu displays a new tab with the name of your extension. You can also use `docker extension ls` to see that the extension has been installed successfully.
-
-### Frontend development
-
-During the development of the frontend part, it's helpful to use hot reloading to test your changes without rebuilding your entire extension. To do this, you can configure Docker Desktop to load your UI from a development server.
-Assuming your app runs on the default port, start your UI app and then run:
-
-```shell
-  cd ui
-  npm install
-  npm run dev
-```
-
-This starts a development server that listens on port `3000`.
-
-You can now tell Docker Desktop to use this as the frontend source. In another terminal run:
-
-```shell
-  docker extension dev ui-source DockIQ/docker-extension:latest http://localhost:3000
-```
-
-In order to open the Chrome Dev Tools for your extension when you click on the extension tab, run:
-
-```shell
-  docker extension dev debug DockIQ/docker-extension:latest
-```
-
-Each subsequent click on the extension tab will also open Chrome Dev Tools. To stop this behaviour, run:
-
-```shell
-  docker extension dev reset DockIQ/docker-extension:latest
-```
-
-### Backend development (optional)
-
-This example defines an API in Go that is deployed as a backend container when the extension is installed. This backend could be implemented in any language, as it runs inside a container. The extension frameworks provides connectivity from the extension UI to a socket that the backend has to connect to on the server side.
-
-Note that an extension doesn't necessarily need a backend container, but in this example we include one for teaching purposes.
-
-Whenever you make changes in the [backend](./backend) source code, you will need to compile them and re-deploy a new version of your backend container.
-Use the `docker extension update` command to remove and re-install the extension automatically:
-
-```shell
-docker extension update DockIQ/docker-extension:latest
-```
-
-> If you want to automate this command, use the `-f` or `--force` flag to accept the warning message.
-
-> Extension containers are hidden from the Docker Dashboard by default. You can change this in Settings > Extensions > Show Docker Extensions system containers.
-
-### Clean up
-
-To remove the extension:
-
-```shell
-docker extension rm DockIQ/docker-extension:latest
-```
-
-## What's next?
-
-- To learn more about how to build your extension refer to the Extension SDK docs at https://docs.docker.com/desktop/extensions-sdk/.
-- To publish your extension in the Marketplace visit https://www.docker.com/products/extensions/submissions/.
-- To report issues and feedback visit https://github.com/docker/extensions-sdk/issues.
-- To look for other ideas of new extensions, or propose new ideas of extensions you would like to see, visit https://github.com/docker/extension-ideas/discussions.
+# Verify the installation
+docker images | grep docker-extension
