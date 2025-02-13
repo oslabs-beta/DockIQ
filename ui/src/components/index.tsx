@@ -127,12 +127,34 @@ const DockIQ: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', p: 4 }}>
-      <Typography
+      {/* <Typography
         variant='h4'
         component='h1'
         sx={{ color: 'primary.main', fontWeight: 600, mb: 4 }}
       >
         DockIQ
+      </Typography> */}
+      <Typography
+        variant='h4'
+        component='h1'
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2, // In case we decide to add text. Looks whitespace-y
+          mb: 4,
+        }}
+      >
+        <Box sx={{ textAlign: 'center', width: '100%' }}>
+          <Box
+            component='img'
+            src='/assets/dockiq-logo-crop.png'
+            alt='DockIQ Logo'
+            sx={{
+              width: '200px',
+              height: 'auto',
+            }}
+          />
+        </Box>
       </Typography>
 
       {/* Status Cards (Running, Stopped, Unhealthy, Restarting) */}
@@ -211,14 +233,40 @@ const DockIQ: React.FC = () => {
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell>NAME</TableCell>
-                <TableCell>STATUS</TableCell>
-                <TableCell>CPU %</TableCell>
-                <TableCell>MEM %</TableCell>
-                <TableCell>MEM USAGE</TableCell>
-                <TableCell>NET I/O</TableCell>
-                <TableCell>PIDS</TableCell>
+              <TableRow
+                sx={{ borderBottom: '1px solid rgba(255,255,255,0.2)' }}
+              >
+                {[
+                  'NAME',
+                  'STATUS',
+                  'CPU %',
+                  'MEM %',
+                  'MEM USAGE',
+                  'NET I/O',
+                  'PIDS',
+                ].map((header, index) => (
+                  <TableCell
+                    key={index}
+                    sx={{
+                      position: 'relative',
+                      fontWeight: 600,
+                      '&::after':
+                        index !== 6
+                          ? {
+                              content: '""',
+                              position: 'absolute',
+                              right: 0,
+                              top: '25%', // Adjusted to make it shorter
+                              height: '50%', // Shorter than a full line
+                              width: '1px',
+                              backgroundColor: 'rgba(255,255,255,0.1)', // Subtle color
+                            }
+                          : {},
+                    }}
+                  >
+                    {header}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
